@@ -1,0 +1,24 @@
+# Visual Studio
+.vs/
+Debug/
+Release/
+x64/
+*.user
+*.suo
+*.obj
+*.ilk
+*.pdb
+*.exe
+*.lst
+*.log
+*.tlog
+*.idb
+*.ipch
+
+# Runtime data (created when the program runs)
+data/bank.dat
+
+# OS junk
+Thumbs.db
+desktop.ini
+.DS_Store
