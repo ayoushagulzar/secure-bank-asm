@@ -126,14 +126,34 @@ RightEdge:
     ret
 DrawBoxRow ENDP
 
-;---------------------------------------------------------------------
-DrawBox PROC USES eax ecx edx, col:DWORD, row:DWORD, wid:DWORD, hgt:DWORD
-; Double-line box in CLR_BORDER using BOX_TL BOX_TR BOX_BL BOX_BR BOX_H BOX_V
-;   top    : BOX_TL, (wid-2) x BOX_H, BOX_TR
-;   middle : for (hgt-2) rows -> BOX_V at col and at col+wid-1
-;   bottom : BOX_BL, (wid-2) x BOX_H, BOX_BR
-;---------------------------------------------------------------------
-    ; TODO: Gotoxy + WriteChar in LOOPs
+;========================= DRAW BOX PROC ===============================
+; Draws a box in CLR_BORDER. (col,row) = top-left corner.
+;
+;   ╔══════╗   top row
+;   ║      ║   (height-2) side rows, inside filled with spaces
+;   ╚══════╝   bottom row
+;   <-wid-->
+;
+; wid and height must be at least 2.
+
+DrawBox PROC USES eax ecx edx, col:DWORD, row:DWORD, wid:DWORD, height:DWORD
+
+    INVOKE SetColor, CLR_BORDER
+    INVOKE DrawBoxRow, col, row, wid, BOX_TL, BOX_H, BOX_TR     ; top
+
+    mov edx, row                ; EDX = current row
+    mov ecx, height
+    sub ecx, 2                  ; side rows = height − top − bottom
+    jecxz BottomRow
+SideRows:
+    inc edx                     ;next row (down)
+    INVOKE DrawBoxRow, col, edx, wid, BOX_V, ' ', BOX_V       
+    loop SideRows               ; DrawBoxRow saved ECX/EDX, so they are safe
+BottomRow:
+    inc edx                     ; = row + height - 1
+    INVOKE DrawBoxRow, col, edx, wid, BOX_BL, BOX_H, BOX_BR    ; bottom
+
+    INVOKE ResetColor
     ret
 DrawBox ENDP
 
