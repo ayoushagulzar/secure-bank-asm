@@ -63,14 +63,30 @@ ReadMasked PROC USES ebx ecx edi, pBuf:PTR BYTE, maxLen:DWORD
     ret
 ReadMasked ENDP
 
-;---------------------------------------------------------------------
-FindAccount PROC USES ecx esi, accNumber:DWORD
-; Linear search through accNo[] using ESI and LOOP.
+;====================== FIND ACCOUNT PROC =============================
 ; Returns EAX = index (0-based) or -1 if not found.
-;---------------------------------------------------------------------
+
+FindAccount PROC USES ecx esi, accNumber:DWORD
     mov eax, -1
-    ; TODO: mov esi, OFFSET accNo / mov ecx, accCount
-    ;       compare [esi] with accNumber, add esi, TYPE accNo, LOOP
+
+    mov esi , OFFSET accNo       ;accNo is defined in banck_records.asm
+    mov ecx , accCount           ;accCount is defined in banck_records.asm
+    jecxz NotFound
+
+NextAcc:
+    mov eax , [esi]
+    cmp eax , accNumber
+    je accountFount
+    add esi, TYPE accNo
+    Loop NextAcc
+
+NotFound:
+    mov eax , -1
+    ret
+
+accountFount:
+    mov eax, accCount           ; ECX counts down from accCount,
+    sub eax, ecx                ; so index = accCount - ECX
     ret
 FindAccount ENDP
 
