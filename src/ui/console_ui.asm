@@ -1,35 +1,12 @@
-;=====================================================================
-; console_ui.asm  -  Console look & feel (every screen is drawn with these)
-;---------------------------------------------------------------------
-; Owner    : Ayousha
+;======================================================================================
 ; Concepts : Irvine32 console procs (Clrscr, Gotoxy, SetTextColor,
-;            WriteChar, WriteString, ReadChar, Delay), nested loops,
-;            string length with SCASB (for centering), LOOP
-;
-; STYLE RULES (keep every screen consistent):
-;   1. Every screen: DrawHeader -> DrawBox + content -> ONE status line
-;      (ShowSuccess / ShowError / ShowInfo) -> PressAnyKey
-;   2. Colors only from bank_shared.inc (CLR_*). Always ResetColor afterwards.
-;   3. Design for 80 columns. Box content starts at BODY_ROW.
-;   4. Status messages always on STATUS_ROW, prompts on PROMPT_ROW.
-;
-; Target look (+ = | are drawn with the double-line BOX_* characters):
-;   +==============================================================+
-;   |                   S E C U R E   B A N K                      |  <- CLR_HEADER
-;   +==============================================================+
-;                          MAIN MENU                                   <- CLR_HIGHLIGHT
-;            +============================+
-;            |  [1]  User Login           |                            <- CLR_BORDER box
-;            |  [2]  Admin Mode           |                            <- CLR_TEXT text
-;            |  [0]  Exit                 |
-;            +============================+
-;   v Login successful.                                                <- CLR_SUCCESS
-;=====================================================================
+;            WriteChar, WriteString, ReadChar, Delay), SCASB, LOOP, JECXZ
+;======================================================================================
 INCLUDE Irvine32.inc         ;gives us irvine procedures + color name
 INCLUDE bank_shared.inc      ;constants, CLR_ colors, box characters, PROTOs are defined in this file
 
 
-;------------------------- Layout used only in this file -------------
+;------------------------- Layout used only in this file ------------------------
 HDR_W       = 64                        ; width of the banner
 HDR_COL     = (SCREEN_W - HDR_W) / 2    ; banner will be align in center
 SPL_W       = 52                        ; splash frame width
@@ -77,7 +54,7 @@ PrintAt ENDP
 
 ;======================= PRINT CENTERED PROC ===========================
 ; to calculate length the code counts characters until the 0 using SCASB
-; (“scan string byte”). then, col = (SCREEN_W - length) / 2  (SHR 1)
+; ("scan string byte"). then, col = (SCREEN_W - length) / 2  (SHR 1)
 
 PrintCentered PROC USES eax ecx edi, row:DWORD, pStr:PTR BYTE
     mov edi, pStr               ; EDI points at the first character
@@ -104,8 +81,7 @@ PrintCentered ENDP
 ; Helper proc: draws ONE row of box(its priv so only this file can call it)
 ; leftCh, then (wid-2) x midCh, then rightCh.
 
-DrawBoxRow PROC PRIVATE USES eax ecx edx, col:DWORD, row:DWORD, wid:DWORD,
-leftChar:DWORD, midChar:DWORD, rightChar:DWORD
+DrawBoxRow PROC PRIVATE USES eax ecx edx, col:DWORD, row:DWORD, wid:DWORD, leftChar:DWORD, midChar:DWORD, rightChar:DWORD
 
     mov dh, BYTE PTR row
     mov dl, BYTE PTR col
@@ -114,12 +90,12 @@ leftChar:DWORD, midChar:DWORD, rightChar:DWORD
     call WriteChar              ; WriteChar prints AL
 
     mov ecx, wid
-    sub ecx, 2                  ; middle count = width − 2 corners
+    sub ecx, 2                  ; middle count = width - 2 corners
     jecxz RightEdge             ; ECX = 0 -> skip
     mov eax, midChar
 MiddleChars:
     call WriteChar
-    loop MiddleChars            ; ECX−−, repeat while ECX != 0
+    loop MiddleChars            ; ECX--, repeat while ECX != 0
 RightEdge:
     mov eax, rightChar
     call WriteChar
@@ -127,14 +103,6 @@ RightEdge:
 DrawBoxRow ENDP
 
 ;========================= DRAW BOX PROC ===============================
-; Draws a box in CLR_BORDER. (col,row) = top-left corner.
-;
-;   ╔══════╗   top row
-;   ║      ║   (height-2) side rows, inside filled with spaces
-;   ╚══════╝   bottom row
-;   <-wid-->
-;
-; wid and height must be at least 2.
 
 DrawBox PROC USES eax ecx edx, col:DWORD, row:DWORD, wid:DWORD, height:DWORD
 
@@ -143,7 +111,7 @@ DrawBox PROC USES eax ecx edx, col:DWORD, row:DWORD, wid:DWORD, height:DWORD
 
     mov edx, row                ; EDX = current row
     mov ecx, height
-    sub ecx, 2                  ; side rows = height − top − bottom
+    sub ecx, 2                  ; side rows = height - top - bottom
     jecxz BottomRow
 SideRows:
     inc edx                     ;next row (down)
@@ -186,7 +154,7 @@ StatusLine PROC PRIVATE USES eax edx, clr:DWORD, mark:DWORD, pMsg:PTR BYTE
     mov dl, MSG_COL
     call Gotoxy
     INVOKE SetColor, clr
-    mov eax, mark               ; put the symbol into EAX (✓->success / X->erro/ i->info)
+    mov eax, mark               ; put the symbol into EAX (tick->success / X->erro/ i->info)
     call WriteChar              ;
     mov al, ' '
     call WriteChar
@@ -199,7 +167,7 @@ StatusLine ENDP
 ;========================= SHOW SUCCESS PROC ===========================
 
 ShowSuccess PROC, pMsg:PTR BYTE
-    INVOKE StatusLine, CLR_SUCCESS, 0FBh, pMsg            ; green, ✓
+    INVOKE StatusLine, CLR_SUCCESS, 0FBh, pMsg            ; green, tick
     ret
 ShowSuccess ENDP
 
@@ -268,7 +236,7 @@ SplashScreen PROC USES eax ecx
     INVOKE SetColor, CLR_SUCCESS ;green
     mov ecx, BAR_LEN
 NextBlock:
-    mov al, BOX_FILL            ; █
+    mov al, BOX_FILL            
     call WriteChar
     mov eax, 40                 
     call Delay
