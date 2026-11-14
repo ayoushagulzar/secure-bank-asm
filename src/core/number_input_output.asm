@@ -1,7 +1,4 @@
 ;=====================================================================
-; number_input_output.asm  -  Number input / output helpers (used by everyone)
-;---------------------------------------------------------------------
-; Owner    : Ayousha
 ; Concepts : RECURSION with EBP stack frames, 64-bit division using
 ;            two 32-bit DIVs, ReadDec + carry flag validation
 ;=====================================================================
@@ -47,13 +44,12 @@ PrintMoney PROC USES eax, valLo:DWORD, valHi:DWORD
     ret
 PrintMoney ENDP
 
-;---------------------------------------------------------------------
+========================== READ AMOUNT PROC ==========================
 ReadAmount PROC
-; Reads a positive amount with ReadDec.
-; Returns EAX = amount, or 0 if input was invalid / zero / overflowed
-; (ReadDec sets CF=1 on invalid input -> JC invalid).
-;---------------------------------------------------------------------
-    ; TODO: call ReadDec / jc bad / return eax ; bad: xor eax,eax
+    call ReadDec          ;sets CF=1 on invalid input -> JC invalid
+    jc invalidAmount
+    ret 
+invalidAmount:
     xor eax, eax
     ret
 ReadAmount ENDP
