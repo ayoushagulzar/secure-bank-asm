@@ -1,7 +1,4 @@
 ;=====================================================================
-; login_security.asm  -  PIN hashing, masked input, account search, login
-;---------------------------------------------------------------------
-; Owner    : Ayousha
 ; Concepts : ROL / SHL / XOR (hashing), ReadChar loop (masked input),
 ;            LOOP + indirect addressing [ESI] (search),
 ;            AND / OR / TEST on status byte (lock bit),
@@ -11,6 +8,7 @@ INCLUDE Irvine32.inc
 INCLUDE bank_shared.inc
 
 HASH_SEED = 5A17C0DEh
+LOGIN_COL = 24                  ; prompts start here (inside the box)
 
 .data
 titleLogin  BYTE "USER LOGIN", 0
@@ -24,21 +22,30 @@ msgWelcome  BYTE "Login successful.", 0
 pinBuf      BYTE (PIN_LEN + 1) DUP(0)
 
 .code
-;---------------------------------------------------------------------
-HashString PROC USES ecx edx esi, pStr:PTR BYTE, count:DWORD
-; Returns EAX = 32-bit hash of 'count' bytes at pStr.
-; Algorithm (must match exactly - see test values in bank_records.asm):
+;==================== PROC FOR HASHING ========================
+; Algorithm:
 ;     h = HASH_SEED
 ;     for each byte c:
 ;         h = ROL(h, 5)
 ;         h = h XOR c              (c zero-extended to 32 bits)
 ;         h = h + (h SHL 3)        (i.e. h * 9)
-;---------------------------------------------------------------------
+
+HashString PROC USES ecx edx esi, pStr:PTR BYTE, count:DWORD
     mov eax, HASH_SEED
-    ; TODO: mov esi, pStr / mov ecx, count / loop over the bytes
-    ;       MOVZX edx, BYTE PTR [esi] ; ROL eax,5 ; XOR eax,edx
-    ;       mov edx,eax ; SHL edx,3 ; ADD eax,edx ; INC esi ; LOOP
-    ;       Test: "1234" must give 83A5ABCFh
+    mov esi , pStr
+    mov ecx , count
+    jecxz HashDone
+NextByte:
+    movzx edx , BYTE PTR[esi]        ; c (byte -> 32 bits)
+    ROL eax , 5                      ; h = ROL(h, 5)
+    XOR eax ,edx                     ; h = h XOR c
+    mov edx , eax                    ; copy h (so we can compute h*8 without losing h)
+    SHL edx , 3                      ; h SHL 3
+    add eax , edx                    ; h = h + (h SHL 3) 
+
+    inc esi
+    Loop NextByte
+HashDone:
     ret
 HashString ENDP
 
