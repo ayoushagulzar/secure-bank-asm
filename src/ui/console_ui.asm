@@ -15,7 +15,7 @@
 ;
 ; Target look (+ = | are drawn with the double-line BOX_* characters):
 ;   +==============================================================+
-;   |                S E C U R E   B A N K   A T M                 |  <- CLR_HEADER
+;   |                   S E C U R E   B A N K                      |  <- CLR_HEADER
 ;   +==============================================================+
 ;                          MAIN MENU                                   <- CLR_HIGHLIGHT
 ;            +============================+
@@ -41,7 +41,7 @@ MSG_COL     = 2                         ; status / prompt text starts here
 
 
 .data
-bankTitle   BYTE "S E C U R E   B A N K   A T M", 0
+bankTitle   BYTE "S E C U R E   B A N K", 0
 tagline     BYTE "Your money. Secured in Assembly.", 0
 msgLoading  BYTE "Loading accounts ", 0
 msgProcess  BYTE "Processing", 0
@@ -162,7 +162,7 @@ DrawBox ENDP
 ;        -> pTitle centered below it in CLR_HIGHLIGHT -> ResetColor
 
 DrawHeader PROC, pTitle:PTR BYTE
-    call Clrscr                                 ; start every screen clean
+    call Clrscr                                  ; start every screen clean
     INVOKE SetColor, CLR_HEADER                 ; white on blue
     INVOKE DrawBoxRow, HDR_COL, HEADER_ROW,   HDR_W, BOX_TL, BOX_H, BOX_TR
     INVOKE DrawBoxRow, HDR_COL, HEADER_ROW+1, HDR_W, BOX_V,  ' ',   BOX_V
@@ -175,43 +175,79 @@ DrawHeader PROC, pTitle:PTR BYTE
     ret
 DrawHeader ENDP
 
-;---------------------------------------------------------------------
+;========================= STATUS LINE PROC ===============================
+; Helper (used only in this file) shared by ShowSuccess / ShowError / ShowInfo:
+; wipe STATUS_ROW, then print  <mark> <message>  in the given color.
+
+StatusLine PROC PRIVATE USES eax edx, clr:DWORD, mark:DWORD, pMsg:PTR BYTE
+
+    INVOKE PrintAt, 0, STATUS_ROW, ADDR blankLine   ; erase the old message
+    mov dh, STATUS_ROW
+    mov dl, MSG_COL
+    call Gotoxy
+    INVOKE SetColor, clr
+    mov eax, mark               ; put the symbol into EAX (✓->success / X->erro/ i->info)
+    call WriteChar              ;
+    mov al, ' '
+    call WriteChar
+    mov edx, pMsg
+    call WriteString
+    INVOKE ResetColor
+    ret
+StatusLine ENDP
+
+;========================= SHOW SUCCESS PROC ===========================
 ShowSuccess PROC, pMsg:PTR BYTE
-; Clear STATUS_ROW (print blankLine - its width is LENGTHOF blankLine), then CLR_SUCCESS + 0FBh (tick) + msg
+; Clear STATUS_ROW, then CLR_SUCCESS + 0FBh (tick) + msg
 ;---------------------------------------------------------------------
-    ; TODO
+    INVOKE StatusLine, CLR_SUCCESS, 0FBh, pMsg
     ret
 ShowSuccess ENDP
 
-;---------------------------------------------------------------------
+;========================= SHOW ERROR PROC =============================
 ShowError PROC USES eax, pMsg:PTR BYTE
-; Same as ShowSuccess but CLR_ERROR, prefix "X ", and a beep:
-;   mov al, 7 / call WriteChar
+; Same as ShowSuccess but CLR_ERROR, prefix "X ", and a beep
 ;---------------------------------------------------------------------
-    ; TODO
+    mov al, 7                   ; ASCII 7 = BEL: printing it makes a beep
+    call WriteChar
+    INVOKE StatusLine, CLR_ERROR, 'X', pMsg
     ret
 ShowError ENDP
 
-;---------------------------------------------------------------------
+;========================= SHOW INFO PROC ===============================
 ShowInfo PROC, pMsg:PTR BYTE
+; CLR_INFO on STATUS_ROW
 ;---------------------------------------------------------------------
-    ; TODO: CLR_INFO on STATUS_ROW
+    INVOKE StatusLine, CLR_INFO, 'i', pMsg
     ret
 ShowInfo ENDP
 
-;---------------------------------------------------------------------
+;========================= SHOW PROCESSING PROC =========================
 ShowProcessing PROC USES eax ecx
 ; "Processing" followed by 5 dots, Delay 200 ms between dots
+; (on STATUS_ROW, so the next ShowSuccess/ShowError replaces it)
 ;---------------------------------------------------------------------
-    ; TODO
+    INVOKE PrintAt, 0, STATUS_ROW, ADDR blankLine
+    INVOKE SetColor, CLR_INFO
+    INVOKE PrintAt, MSG_COL, STATUS_ROW, ADDR msgProcess
+    mov ecx, 5
+NextDot:
+    mov eax, 200                ; Delay waits EAX milliseconds
+    call Delay
+    mov al, '.'
+    call WriteChar
+    loop NextDot
+    INVOKE ResetColor
     ret
 ShowProcessing ENDP
 
 ;---------------------------------------------------------------------
 PressAnyKey PROC USES eax
-; msgAnyKey in gray on PROMPT_ROW, then call ReadChar
+; msgAnyKey on PROMPT_ROW (CLR_DEFAULT = light gray), then call ReadChar
 ;---------------------------------------------------------------------
-    ; TODO
+    INVOKE ResetColor
+    INVOKE PrintAt, MSG_COL, PROMPT_ROW, ADDR msgAnyKey
+    call ReadChar               ; waits for one key (returned in AL, ignored)
     ret
 PressAnyKey ENDP
 
