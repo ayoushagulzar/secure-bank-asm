@@ -197,43 +197,40 @@ StatusLine PROC PRIVATE USES eax edx, clr:DWORD, mark:DWORD, pMsg:PTR BYTE
 StatusLine ENDP
 
 ;========================= SHOW SUCCESS PROC ===========================
+
 ShowSuccess PROC, pMsg:PTR BYTE
-; Clear STATUS_ROW, then CLR_SUCCESS + 0FBh (tick) + msg
-;---------------------------------------------------------------------
-    INVOKE StatusLine, CLR_SUCCESS, 0FBh, pMsg
+    INVOKE StatusLine, CLR_SUCCESS, 0FBh, pMsg            ; green, ✓
     ret
 ShowSuccess ENDP
 
 ;========================= SHOW ERROR PROC =============================
+
 ShowError PROC USES eax, pMsg:PTR BYTE
-; Same as ShowSuccess but CLR_ERROR, prefix "X ", and a beep
-;---------------------------------------------------------------------
-    mov al, 7                   ; ASCII 7 = BEL: printing it makes a beep
-    call WriteChar
-    INVOKE StatusLine, CLR_ERROR, 'X', pMsg
+    mov al, 7                                       ; ASCII 7 = BEL
+    call WriteChar                                  ; printing BEL makes a beep
+    INVOKE StatusLine, CLR_ERROR, 'X', pMsg         ; red, X
     ret
 ShowError ENDP
 
 ;========================= SHOW INFO PROC ===============================
+
 ShowInfo PROC, pMsg:PTR BYTE
-; CLR_INFO on STATUS_ROW
-;---------------------------------------------------------------------
-    INVOKE StatusLine, CLR_INFO, 'i', pMsg
+    INVOKE StatusLine, CLR_INFO, 'i', pMsg         ; cyan, i
     ret
 ShowInfo ENDP
 
 ;========================= SHOW PROCESSING PROC =========================
-ShowProcessing PROC USES eax ecx
 ; "Processing" followed by 5 dots, Delay 200 ms between dots
 ; (on STATUS_ROW, so the next ShowSuccess/ShowError replaces it)
-;---------------------------------------------------------------------
+
+ShowProcessing PROC USES eax ecx
     INVOKE PrintAt, 0, STATUS_ROW, ADDR blankLine
     INVOKE SetColor, CLR_INFO
     INVOKE PrintAt, MSG_COL, STATUS_ROW, ADDR msgProcess
     mov ecx, 5
 NextDot:
-    mov eax, 200                ; Delay waits EAX milliseconds
-    call Delay
+    mov eax, 200                
+    call Delay                   ;wait 0.2 seconds
     mov al, '.'
     call WriteChar
     loop NextDot
@@ -241,13 +238,12 @@ NextDot:
     ret
 ShowProcessing ENDP
 
-;---------------------------------------------------------------------
+;========================= PRESS ANY KEY PROC ===========================
 PressAnyKey PROC USES eax
-; msgAnyKey on PROMPT_ROW (CLR_DEFAULT = light gray), then call ReadChar
-;---------------------------------------------------------------------
+
     INVOKE ResetColor
     INVOKE PrintAt, MSG_COL, PROMPT_ROW, ADDR msgAnyKey
-    call ReadChar               ; waits for one key (returned in AL, ignored)
+    call ReadChar                ; waits here until a key is pressed
     ret
 PressAnyKey ENDP
 
