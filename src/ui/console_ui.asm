@@ -63,7 +63,7 @@ ResetColor PROC USES eax
     ret
 ResetColor ENDP
 
-;======================= PRINT AT PROC =============================
+;======================= PRINT AT PROC ================================
 ; Move the cursor to (col,row), then print the 0-terminated string.
 
 PrintAt PROC USES edx, col:DWORD, row:DWORD, pStr:PTR BYTE
@@ -75,12 +75,27 @@ PrintAt PROC USES edx, col:DWORD, row:DWORD, pStr:PTR BYTE
     ret
 PrintAt ENDP
 
-;---------------------------------------------------------------------
+;======================= PRINT CENTERED PROC ===========================
+; to calculate length the code counts characters until the 0 using SCASB
+; (“scan string byte”). then, col = (SCREEN_W - length) / 2  (SHR 1)
+
 PrintCentered PROC USES eax ecx edi, row:DWORD, pStr:PTR BYTE
-; length via SCASB (scan for 0), col = (SCREEN_W - length) / 2  (SHR 1)
-;---------------------------------------------------------------------
-    ; TODO: mov edi,pStr / mov al,0 / mov ecx,-1 / cld / repne scasb
-    ;       length = (NOT ecx) - 1 ; compute col ; INVOKE PrintAt, col, row, pStr
+    mov edi, pStr               ; EDI points at the first character
+    mov al, 0                   ; we are searching for the 0 byte
+    mov ecx, -1                 ; "unlimited" counter: 0FFFFFFFFh (cuz we dont know the length of the string)
+    cld                         ; cld = clear direction flag cuz when its 0, EDI goes up (scan forward)
+    repne scasb                 ; repeat while [EDI] != AL, ECX-- each byte
+    not ecx                     ; ; = - ECX - 1 = length + 1 
+    dec ecx                     ; ECX = length
+
+    mov eax, 0                  ; default column if the text is too long
+    cmp ecx, SCREEN_W
+    jae DoPrint                 ; length >= 80: just start at column 0
+    mov eax, SCREEN_W
+    sub eax, ecx                ; free space = 80 - length
+    shr eax, 1                  ; half of it (we need equal space on both sides)
+DoPrint:
+    INVOKE PrintAt, eax, row, pStr
     ret
 PrintCentered ENDP
 
