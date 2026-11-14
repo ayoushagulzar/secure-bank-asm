@@ -25,8 +25,20 @@
 ;            +============================+
 ;   v Login successful.                                                <- CLR_SUCCESS
 ;=====================================================================
-INCLUDE Irvine32.inc
-INCLUDE bank_shared.inc
+INCLUDE Irvine32.inc         ;gives us irvine procedures + color name
+INCLUDE bank_shared.inc      ;constants, CLR_ colors, box characters, PROTOs are defined in this file
+
+
+;------------------------- Layout used only in this file -------------
+HDR_W       = 64                        ; width of the banner
+HDR_COL     = (SCREEN_W - HDR_W) / 2    ; banner will be align in center
+SPL_W       = 52                        ; splash frame width
+SPL_COL     = (SCREEN_W - SPL_W) / 2    ; = 14
+SPL_ROW     = 6                         ; splash frame top row
+BAR_LEN     = 30                        ; blocks in the loading bar
+BAR_ROW     = 15
+MSG_COL     = 2                         ; status / prompt text starts here
+
 
 .data
 bankTitle   BYTE "S E C U R E   B A N K   A T M", 0
@@ -34,31 +46,32 @@ tagline     BYTE "Your money. Secured in Assembly.", 0
 msgLoading  BYTE "Loading accounts ", 0
 msgProcess  BYTE "Processing", 0
 msgAnyKey   BYTE "Press any key to continue...", 0
-blankLine   BYTE (SCREEN_W - 1) DUP(' '), 0
+blankLine   BYTE (SCREEN_W - 1) DUP(' '), 0            ; to erase a line before writing something new on that place
 
 .code
-;---------------------------------------------------------------------
-SetColor PROC USES eax, clr:DWORD
-;---------------------------------------------------------------------
-    mov eax, clr
+;======================= SET COLOR PROC ===============================
+SetColor PROC USES eax, clr:DWORD 
+    mov eax, clr          ; SetTextColor wants the color in EAX
     call SetTextColor
     ret
 SetColor ENDP
 
-;---------------------------------------------------------------------
+;======================= RESET COLOR PROC =============================
 ResetColor PROC USES eax
-;---------------------------------------------------------------------
     mov eax, CLR_DEFAULT
     call SetTextColor
     ret
 ResetColor ENDP
 
-;---------------------------------------------------------------------
+;======================= PRINT AT PROC =============================
+; Move the cursor to (col,row), then print the 0-terminated string.
+
 PrintAt PROC USES edx, col:DWORD, row:DWORD, pStr:PTR BYTE
-; Gotoxy uses DH = row, DL = column
-;---------------------------------------------------------------------
-    ; TODO: mov dh, BYTE PTR row / mov dl, BYTE PTR col / call Gotoxy
-    ;       mov edx, pStr / call WriteString
+    mov dh, BYTE PTR row     ; Gotoxy uses DH = row
+    mov dl, BYTE PTR col     ; DL = column
+    call Gotoxy              ; move the cursor there (its actually GO TO X , Y)
+    mov edx, pStr            ; EDX = address of the string
+    call WriteString         ; print it
     ret
 PrintAt ENDP
 
