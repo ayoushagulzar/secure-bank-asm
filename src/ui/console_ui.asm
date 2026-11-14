@@ -99,6 +99,33 @@ DoPrint:
     ret
 PrintCentered ENDP
 
+
+;========================= DRAW BOX ROW PROC ===============================
+; Helper proc: draws ONE row of box(its priv so only this file can call it)
+; leftCh, then (wid-2) x midCh, then rightCh.
+
+DrawBoxRow PROC PRIVATE USES eax ecx edx, col:DWORD, row:DWORD, wid:DWORD,
+leftChar:DWORD, midChar:DWORD, rightChar:DWORD
+
+    mov dh, BYTE PTR row
+    mov dl, BYTE PTR col
+    call Gotoxy                 ; go to the row's start
+    mov eax, leftChar            
+    call WriteChar              ; WriteChar prints AL
+
+    mov ecx, wid
+    sub ecx, 2                  ; middle count = width − 2 corners
+    jecxz RightEdge             ; ECX = 0 -> skip
+    mov eax, midChar
+MiddleChars:
+    call WriteChar
+    loop MiddleChars            ; ECX−−, repeat while ECX != 0
+RightEdge:
+    mov eax, rightChar
+    call WriteChar
+    ret
+DrawBoxRow ENDP
+
 ;---------------------------------------------------------------------
 DrawBox PROC USES eax ecx edx, col:DWORD, row:DWORD, wid:DWORD, hgt:DWORD
 ; Double-line box in CLR_BORDER using BOX_TL BOX_TR BOX_BL BOX_BR BOX_H BOX_V
