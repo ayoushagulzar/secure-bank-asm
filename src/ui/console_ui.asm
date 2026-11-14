@@ -157,13 +157,21 @@ BottomRow:
     ret
 DrawBox ENDP
 
-;---------------------------------------------------------------------
-DrawHeader PROC, pTitle:PTR BYTE
+;========================= DRAW HEADER PROC ===============================
 ; Clrscr -> blue banner box at HEADER_ROW with bankTitle centered
 ;        -> pTitle centered below it in CLR_HIGHLIGHT -> ResetColor
-;---------------------------------------------------------------------
-    call Clrscr
-    ; TODO
+
+DrawHeader PROC, pTitle:PTR BYTE
+    call Clrscr                                 ; start every screen clean
+    INVOKE SetColor, CLR_HEADER                 ; white on blue
+    INVOKE DrawBoxRow, HDR_COL, HEADER_ROW,   HDR_W, BOX_TL, BOX_H, BOX_TR
+    INVOKE DrawBoxRow, HDR_COL, HEADER_ROW+1, HDR_W, BOX_V,  ' ',   BOX_V
+    INVOKE DrawBoxRow, HDR_COL, HEADER_ROW+2, HDR_W, BOX_BL, BOX_H, BOX_BR
+    INVOKE PrintCentered, HEADER_ROW+1, ADDR bankTitle    ; still blue
+
+    INVOKE SetColor, CLR_HIGHLIGHT              ; yellow screen title
+    INVOKE PrintCentered, HEADER_ROW+3, pTitle
+    INVOKE ResetColor
     ret
 DrawHeader ENDP
 
