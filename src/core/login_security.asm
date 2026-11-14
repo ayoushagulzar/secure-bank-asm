@@ -49,17 +49,51 @@ HashDone:
     ret
 HashString ENDP
 
-;---------------------------------------------------------------------
+;====================== READ MASKED PROC =============================
+; reads keys with ReadChar and shows '*' for each one
+; Enter = done, Backspace = delete last, max maxLen chars
+; EAX = number of chars stored (buffer ends with 0)
+
 ReadMasked PROC USES ebx ecx edi, pBuf:PTR BYTE, maxLen:DWORD
-; Reads keys with ReadChar, prints CH_MASK ('*') for each one.
-; Used for PINs AND the admin password, so it accepts any printable
-; character (20h..7Eh); the caller checks the length (PIN = 4).
-; Handles Backspace (08h): remove last char, print 8,' ',8.
-; Enter (0Dh) ends input. Stops accepting keys at maxLen.
-; Returns EAX = number of characters stored (buffer is 0-terminated).
-;---------------------------------------------------------------------
-    xor eax, eax
-    ; TODO: ReadChar loop as described above (CMP al,20h / JB skip ...)
+    mov edi , pBuf
+    xor ebx , ebx     ;characters stored so far
+
+NextKey:
+    call ReadChar
+    cmp al , 0Dh       ;Enter?
+    je InputDone
+    cmp al , 08h       ;backspace?
+    je DeleteChar
+
+    cmp al , 20h       ;below space -> control key
+    jb NextKey         ;ignore it, wait for the next key
+
+    cmp al , 7Eh       ; above '~' -> not printable
+    ja  NextKey        ;   ignore it
+
+    cmp ebx, maxLen    ; already full?
+    jae NextKey        ;   ignore extra keys
+
+    mov [edi+ebx] , al ;store the real character
+    inc ebx
+    mov al, CH_MASK         ; CH_MASK = '*'  (from bank_shared.inc)
+    call WriteChar
+    jmp NextKey
+
+DeleteChar:
+    cmp ebx , 0      ;nothing typed yet?
+    je NextKey
+    dec ebx
+    mov al , 8       ;move cursor one step left (doesn't erase anything)
+    call WriteChar
+    mov al , ' '     ; overwrite '*'  with s space
+    call WriteChar
+    mov al , 8       ;move left again
+    call WriteChar
+    jmp NextKey
+InputDone:
+    mov BYTE PTR [edi+ebx], 0  ;put the 0 terminator after the last character
+    mov eax , ebx               ;return the count in eax
     ret
 ReadMasked ENDP
 
