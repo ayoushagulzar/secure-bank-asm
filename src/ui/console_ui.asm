@@ -15,7 +15,7 @@
 ;
 ; Target look (+ = | are drawn with the double-line BOX_* characters):
 ;   +==============================================================+
-;   |                S E C U R E   B A N K   A T M                 |  <- CLR_HEADER
+;   |                   S E C U R E   B A N K                      |  <- CLR_HEADER
 ;   +==============================================================+
 ;                          MAIN MENU                                   <- CLR_HIGHLIGHT
 ;            +============================+
@@ -25,121 +25,257 @@
 ;            +============================+
 ;   v Login successful.                                                <- CLR_SUCCESS
 ;=====================================================================
-INCLUDE Irvine32.inc
-INCLUDE bank_shared.inc
+INCLUDE Irvine32.inc         ;gives us irvine procedures + color name
+INCLUDE bank_shared.inc      ;constants, CLR_ colors, box characters, PROTOs are defined in this file
+
+
+;------------------------- Layout used only in this file -------------
+HDR_W       = 64                        ; width of the banner
+HDR_COL     = (SCREEN_W - HDR_W) / 2    ; banner will be align in center
+SPL_W       = 52                        ; splash frame width
+SPL_COL     = (SCREEN_W - SPL_W) / 2    ; = 14
+SPL_ROW     = 6                         ; splash frame top row
+BAR_LEN     = 30                        ; blocks in the loading bar
+BAR_ROW     = 15
+MSG_COL     = 2                         ; status / prompt text starts here
+
 
 .data
-bankTitle   BYTE "S E C U R E   B A N K   A T M", 0
+bankTitle   BYTE "S E C U R E   B A N K", 0
 tagline     BYTE "Your money. Secured in Assembly.", 0
 msgLoading  BYTE "Loading accounts ", 0
 msgProcess  BYTE "Processing", 0
 msgAnyKey   BYTE "Press any key to continue...", 0
-blankLine   BYTE (SCREEN_W - 1) DUP(' '), 0
+blankLine   BYTE (SCREEN_W - 1) DUP(' '), 0            ; to erase a line before writing something new on that place
 
 .code
-;---------------------------------------------------------------------
-SetColor PROC USES eax, clr:DWORD
-;---------------------------------------------------------------------
-    mov eax, clr
+;======================= SET COLOR PROC ===============================
+SetColor PROC USES eax, clr:DWORD 
+    mov eax, clr          ; SetTextColor wants the color in EAX
     call SetTextColor
     ret
 SetColor ENDP
 
-;---------------------------------------------------------------------
+;======================= RESET COLOR PROC =============================
 ResetColor PROC USES eax
-;---------------------------------------------------------------------
     mov eax, CLR_DEFAULT
     call SetTextColor
     ret
 ResetColor ENDP
 
-;---------------------------------------------------------------------
+;======================= PRINT AT PROC ================================
+; Move the cursor to (col,row), then print the 0-terminated string.
+
 PrintAt PROC USES edx, col:DWORD, row:DWORD, pStr:PTR BYTE
-; Gotoxy uses DH = row, DL = column
-;---------------------------------------------------------------------
-    ; TODO: mov dh, BYTE PTR row / mov dl, BYTE PTR col / call Gotoxy
-    ;       mov edx, pStr / call WriteString
+    mov dh, BYTE PTR row     ; Gotoxy uses DH = row
+    mov dl, BYTE PTR col     ; DL = column
+    call Gotoxy              ; move the cursor there (its actually GO TO X , Y)
+    mov edx, pStr            ; EDX = address of the string
+    call WriteString         ; print it
     ret
 PrintAt ENDP
 
-;---------------------------------------------------------------------
+;======================= PRINT CENTERED PROC ===========================
+; to calculate length the code counts characters until the 0 using SCASB
+; (“scan string byte”). then, col = (SCREEN_W - length) / 2  (SHR 1)
+
 PrintCentered PROC USES eax ecx edi, row:DWORD, pStr:PTR BYTE
-; length via SCASB (scan for 0), col = (SCREEN_W - length) / 2  (SHR 1)
-;---------------------------------------------------------------------
-    ; TODO: mov edi,pStr / mov al,0 / mov ecx,-1 / cld / repne scasb
-    ;       length = (NOT ecx) - 1 ; compute col ; INVOKE PrintAt, col, row, pStr
+    mov edi, pStr               ; EDI points at the first character
+    mov al, 0                   ; we are searching for the 0 byte
+    mov ecx, -1                 ; "unlimited" counter: 0FFFFFFFFh (cuz we dont know the length of the string)
+    cld                         ; cld = clear direction flag cuz when its 0, EDI goes up (scan forward)
+    repne scasb                 ; repeat while [EDI] != AL, ECX-- each byte
+    not ecx                     ; ; = - ECX - 1 = length + 1 
+    dec ecx                     ; ECX = length
+
+    mov eax, 0                  ; default column if the text is too long
+    cmp ecx, SCREEN_W
+    jae DoPrint                 ; length >= 80: just start at column 0
+    mov eax, SCREEN_W
+    sub eax, ecx                ; free space = 80 - length
+    shr eax, 1                  ; half of it (we need equal space on both sides)
+DoPrint:
+    INVOKE PrintAt, eax, row, pStr
     ret
 PrintCentered ENDP
 
-;---------------------------------------------------------------------
-DrawBox PROC USES eax ecx edx, col:DWORD, row:DWORD, wid:DWORD, hgt:DWORD
-; Double-line box in CLR_BORDER using BOX_TL BOX_TR BOX_BL BOX_BR BOX_H BOX_V
-;   top    : BOX_TL, (wid-2) x BOX_H, BOX_TR
-;   middle : for (hgt-2) rows -> BOX_V at col and at col+wid-1
-;   bottom : BOX_BL, (wid-2) x BOX_H, BOX_BR
-;---------------------------------------------------------------------
-    ; TODO: Gotoxy + WriteChar in LOOPs
+
+;========================= DRAW BOX ROW PROC ===============================
+; Helper proc: draws ONE row of box(its priv so only this file can call it)
+; leftCh, then (wid-2) x midCh, then rightCh.
+
+DrawBoxRow PROC PRIVATE USES eax ecx edx, col:DWORD, row:DWORD, wid:DWORD,
+leftChar:DWORD, midChar:DWORD, rightChar:DWORD
+
+    mov dh, BYTE PTR row
+    mov dl, BYTE PTR col
+    call Gotoxy                 ; go to the row's start
+    mov eax, leftChar            
+    call WriteChar              ; WriteChar prints AL
+
+    mov ecx, wid
+    sub ecx, 2                  ; middle count = width − 2 corners
+    jecxz RightEdge             ; ECX = 0 -> skip
+    mov eax, midChar
+MiddleChars:
+    call WriteChar
+    loop MiddleChars            ; ECX−−, repeat while ECX != 0
+RightEdge:
+    mov eax, rightChar
+    call WriteChar
+    ret
+DrawBoxRow ENDP
+
+;========================= DRAW BOX PROC ===============================
+; Draws a box in CLR_BORDER. (col,row) = top-left corner.
+;
+;   ╔══════╗   top row
+;   ║      ║   (height-2) side rows, inside filled with spaces
+;   ╚══════╝   bottom row
+;   <-wid-->
+;
+; wid and height must be at least 2.
+
+DrawBox PROC USES eax ecx edx, col:DWORD, row:DWORD, wid:DWORD, height:DWORD
+
+    INVOKE SetColor, CLR_BORDER
+    INVOKE DrawBoxRow, col, row, wid, BOX_TL, BOX_H, BOX_TR     ; top
+
+    mov edx, row                ; EDX = current row
+    mov ecx, height
+    sub ecx, 2                  ; side rows = height − top − bottom
+    jecxz BottomRow
+SideRows:
+    inc edx                     ;next row (down)
+    INVOKE DrawBoxRow, col, edx, wid, BOX_V, ' ', BOX_V       
+    loop SideRows               ; DrawBoxRow saved ECX/EDX, so they are safe
+BottomRow:
+    inc edx                     ; = row + height - 1
+    INVOKE DrawBoxRow, col, edx, wid, BOX_BL, BOX_H, BOX_BR    ; bottom
+
+    INVOKE ResetColor
     ret
 DrawBox ENDP
 
-;---------------------------------------------------------------------
-DrawHeader PROC, pTitle:PTR BYTE
+;========================= DRAW HEADER PROC ===============================
 ; Clrscr -> blue banner box at HEADER_ROW with bankTitle centered
 ;        -> pTitle centered below it in CLR_HIGHLIGHT -> ResetColor
-;---------------------------------------------------------------------
-    call Clrscr
-    ; TODO
+
+DrawHeader PROC, pTitle:PTR BYTE
+    call Clrscr                                  ; start every screen clean
+    INVOKE SetColor, CLR_HEADER                 ; white on blue
+    INVOKE DrawBoxRow, HDR_COL, HEADER_ROW,   HDR_W, BOX_TL, BOX_H, BOX_TR
+    INVOKE DrawBoxRow, HDR_COL, HEADER_ROW+1, HDR_W, BOX_V,  ' ',   BOX_V
+    INVOKE DrawBoxRow, HDR_COL, HEADER_ROW+2, HDR_W, BOX_BL, BOX_H, BOX_BR
+    INVOKE PrintCentered, HEADER_ROW+1, ADDR bankTitle    ; still blue
+
+    INVOKE SetColor, CLR_HIGHLIGHT              ; yellow screen title
+    INVOKE PrintCentered, HEADER_ROW+3, pTitle
+    INVOKE ResetColor
     ret
 DrawHeader ENDP
 
-;---------------------------------------------------------------------
+;========================= STATUS LINE PROC ===============================
+; Helper (used only in this file) shared by ShowSuccess / ShowError / ShowInfo:
+; wipe STATUS_ROW, then print  <mark> <message>  in the given color.
+
+StatusLine PROC PRIVATE USES eax edx, clr:DWORD, mark:DWORD, pMsg:PTR BYTE
+
+    INVOKE PrintAt, 0, STATUS_ROW, ADDR blankLine   ; erase the old message
+    mov dh, STATUS_ROW
+    mov dl, MSG_COL
+    call Gotoxy
+    INVOKE SetColor, clr
+    mov eax, mark               ; put the symbol into EAX (✓->success / X->erro/ i->info)
+    call WriteChar              ;
+    mov al, ' '
+    call WriteChar
+    mov edx, pMsg
+    call WriteString
+    INVOKE ResetColor
+    ret
+StatusLine ENDP
+
+;========================= SHOW SUCCESS PROC ===========================
+
 ShowSuccess PROC, pMsg:PTR BYTE
-; Clear STATUS_ROW (print blankLine - its width is LENGTHOF blankLine), then CLR_SUCCESS + 0FBh (tick) + msg
-;---------------------------------------------------------------------
-    ; TODO
+    INVOKE StatusLine, CLR_SUCCESS, 0FBh, pMsg            ; green, ✓
     ret
 ShowSuccess ENDP
 
-;---------------------------------------------------------------------
+;========================= SHOW ERROR PROC =============================
+
 ShowError PROC USES eax, pMsg:PTR BYTE
-; Same as ShowSuccess but CLR_ERROR, prefix "X ", and a beep:
-;   mov al, 7 / call WriteChar
-;---------------------------------------------------------------------
-    ; TODO
+    mov al, 7                                       ; ASCII 7 = BEL
+    call WriteChar                                  ; printing BEL makes a beep
+    INVOKE StatusLine, CLR_ERROR, 'X', pMsg         ; red, X
     ret
 ShowError ENDP
 
-;---------------------------------------------------------------------
+;========================= SHOW INFO PROC ===============================
+
 ShowInfo PROC, pMsg:PTR BYTE
-;---------------------------------------------------------------------
-    ; TODO: CLR_INFO on STATUS_ROW
+    INVOKE StatusLine, CLR_INFO, 'i', pMsg         ; cyan, i
     ret
 ShowInfo ENDP
 
-;---------------------------------------------------------------------
-ShowProcessing PROC USES eax ecx
+;========================= SHOW PROCESSING PROC =========================
 ; "Processing" followed by 5 dots, Delay 200 ms between dots
-;---------------------------------------------------------------------
-    ; TODO
+; (on STATUS_ROW, so the next ShowSuccess/ShowError replaces it)
+
+ShowProcessing PROC USES eax ecx
+    INVOKE PrintAt, 0, STATUS_ROW, ADDR blankLine
+    INVOKE SetColor, CLR_INFO
+    INVOKE PrintAt, MSG_COL, STATUS_ROW, ADDR msgProcess
+    mov ecx, 5
+NextDot:
+    mov eax, 200                
+    call Delay                   ;wait 0.2 seconds
+    mov al, '.'
+    call WriteChar
+    loop NextDot
+    INVOKE ResetColor
     ret
 ShowProcessing ENDP
 
-;---------------------------------------------------------------------
+;========================= PRESS ANY KEY PROC ===========================
 PressAnyKey PROC USES eax
-; msgAnyKey in gray on PROMPT_ROW, then call ReadChar
-;---------------------------------------------------------------------
-    ; TODO
+
+    INVOKE ResetColor
+    INVOKE PrintAt, MSG_COL, PROMPT_ROW, ADDR msgAnyKey
+    call ReadChar                ; waits here until a key is pressed
     ret
 PressAnyKey ENDP
 
-;---------------------------------------------------------------------
-SplashScreen PROC USES eax ecx
-; Big centered title + tagline, then a loading bar:
+;========================= SPLASH SCREEN PROC ===========================
+; Framed title + tagline, then a loading bar:
 ;   "Loading accounts" + 30 x BOX_FILL, each with Delay 40
 ; Then PressAnyKey.
-;---------------------------------------------------------------------
+
+SplashScreen PROC USES eax ecx
     call Clrscr
-    ; TODO
+    INVOKE DrawBox, SPL_COL, SPL_ROW, SPL_W, 7          ; frame: rows 6..12
+    INVOKE SetColor, CLR_HIGHLIGHT
+    INVOKE PrintCentered, SPL_ROW+2, ADDR bankTitle     ;yellow title
+    INVOKE SetColor, CLR_TEXT
+    INVOKE PrintCentered, SPL_ROW+4, ADDR tagline       ;white tagline
+
+    ; loading bar: "Loading accounts " (17 chars) + 30 blocks = 47 chars, centered
+    INVOKE SetColor, CLR_INFO                           ;cyan
+    INVOKE PrintAt, (SCREEN_W - 17 - BAR_LEN) / 2, BAR_ROW, ADDR msgLoading
+
+    ;------- animated loading bar ---------
+    INVOKE SetColor, CLR_SUCCESS ;green
+    mov ecx, BAR_LEN
+NextBlock:
+    mov al, BOX_FILL            ; █
+    call WriteChar
+    mov eax, 40                 
+    call Delay
+    loop NextBlock
+    INVOKE ResetColor
+
+    INVOKE PressAnyKey
     ret
 SplashScreen ENDP
 
