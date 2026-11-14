@@ -19,7 +19,7 @@ msgLocked   BYTE "Account is LOCKED. Please contact the bank admin.", 0
 msgWrongPin BYTE "Wrong PIN. Attempts left: ", 0
 msgNowLock  BYTE "3 wrong attempts - account has been LOCKED.", 0
 msgWelcome  BYTE "Login successful.", 0
-pinBuf      BYTE (PIN_LEN + 1) DUP(0)
+pinBuf      BYTE (PIN_LEN + 1) DUP(0)     ;empty space that holds the PIN while the user is typing i
 
 .code
 ;==================== PROC FOR HASHING ========================
@@ -90,14 +90,20 @@ accountFount:
     ret
 FindAccount ENDP
 
-;---------------------------------------------------------------------
-VerifyPin PROC USES ebx, accIndex:DWORD, pBuf:PTR BYTE, count:DWORD
+;====================== VERIFY PIN PROC =============================
 ; EAX = 1 if HashString(pBuf,count) == accPinHash[accIndex], else 0.
-; (Batool uses this in ChangePin.)
-;---------------------------------------------------------------------
+
+VerifyPin PROC USES ebx, accIndex:DWORD, pBuf:PTR BYTE, count:DWORD
     xor eax, eax
-    ; TODO: INVOKE HashString, pBuf, count
-    ;       mov ebx, accIndex / CMP eax, accPinHash[ebx*4] / set EAX 1 or 0
+    Invoke HashString,pBuf , count
+    mov ebx , accIndex
+    cmp eax , accPinHash[ebx*4]  ;accPinHash is defined in bank_records.asm 
+    je verified
+    mov eax , 0                 ;if not equal , eax = 0
+    ret
+
+verified:
+    mov eax , 1
     ret
 VerifyPin ENDP
 
