@@ -247,14 +247,35 @@ PressAnyKey PROC USES eax
     ret
 PressAnyKey ENDP
 
-;---------------------------------------------------------------------
-SplashScreen PROC USES eax ecx
-; Big centered title + tagline, then a loading bar:
+;========================= SPLASH SCREEN PROC ===========================
+; Framed title + tagline, then a loading bar:
 ;   "Loading accounts" + 30 x BOX_FILL, each with Delay 40
 ; Then PressAnyKey.
-;---------------------------------------------------------------------
+
+SplashScreen PROC USES eax ecx
     call Clrscr
-    ; TODO
+    INVOKE DrawBox, SPL_COL, SPL_ROW, SPL_W, 7          ; frame: rows 6..12
+    INVOKE SetColor, CLR_HIGHLIGHT
+    INVOKE PrintCentered, SPL_ROW+2, ADDR bankTitle     ;yellow title
+    INVOKE SetColor, CLR_TEXT
+    INVOKE PrintCentered, SPL_ROW+4, ADDR tagline       ;white tagline
+
+    ; loading bar: "Loading accounts " (17 chars) + 30 blocks = 47 chars, centered
+    INVOKE SetColor, CLR_INFO                           ;cyan
+    INVOKE PrintAt, (SCREEN_W - 17 - BAR_LEN) / 2, BAR_ROW, ADDR msgLoading
+
+    ;------- animated loading bar ---------
+    INVOKE SetColor, CLR_SUCCESS ;green
+    mov ecx, BAR_LEN
+NextBlock:
+    mov al, BOX_FILL            ; █
+    call WriteChar
+    mov eax, 40                 
+    call Delay
+    loop NextBlock
+    INVOKE ResetColor
+
+    INVOKE PressAnyKey
     ret
 SplashScreen ENDP
 
