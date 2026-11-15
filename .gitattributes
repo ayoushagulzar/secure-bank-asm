@@ -1,6 +1,6 @@
 # MASM / Visual Studio files use Windows line endings
 *.asm   text eol=crlf
-*.inc   text eol=crlf
+*.inc   text eol=crlf linguist-language=Assembly
 *.sln   text eol=crlf
 *.vcxproj text eol=crlf
 *.md    text
