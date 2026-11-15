@@ -14,6 +14,7 @@ LOGIN_COL = 24                  ; prompts start here (inside the box)
 titleLogin  BYTE "USER LOGIN", 0
 promptAcc   BYTE "Account number : ", 0
 promptPin   BYTE "PIN            : ", 0
+blankPin    BYTE "    ", 0      ; erases old stars before a retry
 msgNoAcc    BYTE "Account not found.", 0
 msgLocked   BYTE "Account is LOCKED. Please contact the bank admin.", 0
 msgWrongPin BYTE "Wrong PIN. Attempts left: ", 0
@@ -141,20 +142,76 @@ verified:
     ret
 VerifyPin ENDP
 
-;---------------------------------------------------------------------
-UserLogin PROC USES ebx ecx
+;====================== USER LOGIN PROC =============================
 ; Full login screen. Returns EAX = account index, or -1 on failure.
-;---------------------------------------------------------------------
+
+UserLogin PROC USES ebx ecx edx
+
+    ;draws the login screen (banners/box)
+    INVOKE DrawHeader, ADDR titleLogin
+    INVOKE DrawBox, LOGIN_COL-4, BODY_ROW+1, 40, 6
+    INVOKE PrintAt, LOGIN_COL, BODY_ROW+2, ADDR promptAcc      ;ask for account number
+
+    call ReadDec                ;reads account number
+    jc  NoAccount               ; CF = 1 -> invalid input
+    INVOKE FindAccount, eax
+    cmp eax, -1
+    je  NoAccount
+    mov ebx, eax                ; EBX = account index
+
+    test accStatus[ebx], STATUS_LOCKED
+    jnz IsLocked
+
+PinLoop:
+    ; ---- show the PIN prompt and erase old stars ----
+    INVOKE PrintAt, LOGIN_COL, BODY_ROW+4, ADDR promptPin
+    mov edx, OFFSET blankPin   
+    call WriteString
+    INVOKE PrintAt, LOGIN_COL, BODY_ROW+4, ADDR promptPin
+
+    ; ---- read the PIN and check it ----
+    INVOKE ReadMasked, ADDR pinBuf, PIN_LEN
+    INVOKE VerifyPin, ebx, ADDR pinBuf, eax
+    cmp eax, 1
+    je  PinOk
+
+    ---- wrong PIN: count it ----
+    inc accFailCount[ebx]       ; wrong PIN
+    movzx eax, accFailCount[ebx]
+    cmp eax, MAX_PIN_TRIES
+    jae LockAccount
+
+    ---- show "attempts left" and try again ----
+    INVOKE ShowError, ADDR msgWrongPin
+    mov ecx, MAX_PIN_TRIES
+    sub ecx, eax                ; attempts left
+    mov eax, ecx
+    INVOKE SetColor, CLR_ERROR
+    call WriteDec
+    INVOKE ResetColor
+    jmp PinLoop
+
+PinOk:
+    mov accFailCount[ebx], 0    ; reset the counter
+    INVOKE ShowSuccess, ADDR msgWelcome
+    INVOKE PressAnyKey
+    mov eax, ebx                ; return the index
+    ret
+
+LockAccount:
+    or  accStatus[ebx], STATUS_LOCKED   ; set the lowest bit
+    INVOKE ShowError, ADDR msgNowLock
+    INVOKE SaveData             ; lock must survive a restart (closing and reopening the program should not reset it)
+    jmp LoginFailed
+
+NoAccount:
+    INVOKE ShowError, ADDR msgNoAcc
+    jmp LoginFailed
+IsLocked:
+    INVOKE ShowError, ADDR msgLocked
+LoginFailed:
+    INVOKE PressAnyKey
     mov eax, -1
-    ; TODO 1: DrawHeader titleLogin, read account number (ReadDec)
-    ; TODO 2: FindAccount -> -1 ? ShowError msgNoAcc, return -1
-    ; TODO 3: TEST accStatus[idx], STATUS_LOCKED -> JNZ ShowError msgLocked
-    ; TODO 4: loop up to MAX_PIN_TRIES:
-    ;           ReadMasked -> VerifyPin
-    ;           correct : accFailCount[idx] = 0, ShowSuccess, return idx
-    ;           wrong   : INC accFailCount[idx], show attempts left
-    ; TODO 5: after 3rd wrong: OR accStatus[idx], STATUS_LOCKED
-    ;         ShowError msgNowLock, INVOKE SaveData, return -1
     ret
 UserLogin ENDP
 
