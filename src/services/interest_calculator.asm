@@ -30,6 +30,73 @@ CalcInterest PROC USES eax ebx ecx edx, accIndex:DWORD
 ; 3) Display only - this does NOT change the real balance.
 ;---------------------------------------------------------------------
     ; TODO
+
+    CalcInterest PROC USES eax ebx ecx edx esi, accIndex:DWORD
+    LOCAL amt:DWORD, yearNo:DWORD
+
+    INVOKE DrawHeader, ADDR titleInt
+
+    mov  edx, OFFSET lblRate
+    call WriteString
+    call Crlf
+
+    mov  edx, OFFSET lblYearly
+    call WriteString
+
+    mov  esi, accIndex
+    mov  eax, DWORD PTR accBalance[esi*8]
+    mov  ebx, INTEREST_RATE
+    mul  ebx
+    mov  ebx, 100
+    div  ebx
+    INVOKE PrintMoney, eax, 0
+    call Crlf
+
+    mov  edx, OFFSET promptYears
+    call WriteString
+    call ReadDec
+    jc   errYears
+    cmp  eax, 1
+    jb   errYears
+    cmp  eax, 10
+    ja   errYears
+
+    mov  ecx, eax
+    mov  eax, DWORD PTR accBalance[esi*8]
+    mov  amt, eax
+    mov  yearNo, 0
+
+yearLoop:
+    push ecx
+
+    mov  eax, amt
+    mov  ebx, INTEREST_RATE
+    mul  ebx
+    mov  ebx, 100
+    div  ebx
+    add  amt, eax
+    inc  yearNo
+
+    mov  edx, OFFSET lblYear
+    call WriteString
+    mov  eax, yearNo
+    call WriteDec
+    mov  edx, OFFSET lblArrow
+    call WriteString
+    INVOKE PrintMoney, amt, 0
+    call Crlf
+
+    pop  ecx
+    dec  ecx
+    jnz  yearLoop
+
+    PressAnyKey
+    jmp  IntDone
+
+errYears:
+    INVOKE ShowError, ADDR msgBadYears
+
+IntDone:
     ret
 CalcInterest ENDP
 
