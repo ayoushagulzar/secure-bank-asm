@@ -3,5 +3,3 @@
 
 Closes #<!-- issue number -->
 
-## Screenshot
-<!-- Drag a screenshot of the new screen here -->
