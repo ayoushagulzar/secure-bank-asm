@@ -1,108 +1,151 @@
 # Secure Bank: Mini ATM in x86 Assembly
 
-A menu-driven ATM and banking system written in **32-bit x86 Assembly (MASM)** with the **Irvine32** library. It has hashed PINs, account locking, 64-bit balances, a transaction history kept in a 2D circular buffer, and data that is **saved to disk** between runs. All of it runs in a styled, colored console UI.
+<p align="center">
+  <strong>A menu-driven ATM and banking system written in 32-bit x86 Assembly</strong><br>
+  Computer Organization & Assembly Language (COAL) Lab Project · FAST-NUCES Karachi · Fall 2026
+</p>
 
-> COAL Lab Project, FAST-NUCES Karachi, Fall 2026
+<p align="center">
+  <img src="https://img.shields.io/badge/LANGUAGE-x86%20ASSEMBLY-3BA9F5?style=for-the-badge&labelColor=2A3142">
+  <img src="https://img.shields.io/badge/COURSE-COAL-7057E8?style=for-the-badge&labelColor=2A3142">
+  <img src="https://img.shields.io/badge/PURPOSE-LAB%20PROJECT-D63384?style=for-the-badge&labelColor=2A3142">
+</p>
 
-<!-- Replace with the real recording once the UI is finished -->
-![Demo](docs/screenshots/demo.gif)
+<!-- Demo: uncomment once docs/screenshots/demo.gif is added
+     (or use docs/screenshots/main-menu.png for a still image)
+<p align="center">
+  <img src="docs/screenshots/demo.gif" alt="Secure Bank demo" width="700">
+</p>
+-->
+
+---
+
+## About
+
+Secure Bank is a console ATM written entirely in **32-bit x86 Assembly (MASM)** with the **Irvine32** library. It has hashed PINs, account locking, 64-bit balances, a transaction history kept in a 2D circular buffer, and data that is **saved to disk** between runs, all in a styled, colored console interface.
 
 ---
 
 ## Features
 
-| | Feature | Highlights |
-|---|---|---|
-| 🔐 | **Secure login** | Masked `****` PIN entry. PINs are stored only as a **hash** (ROL/XOR/SHL), never in plain form. |
-| 🚫 | **Account lock** | 3 wrong PINs lock the account (status bit set with `OR`, tested with `TEST`). |
-| 💰 | **Deposit / Withdraw** | 64-bit balances using `ADD/ADC` and `SUB/SBB`, overflow and insufficient-balance checks. |
-| 💵 | **Cash dispensing** | Note breakdown (5000 / 1000 / 500) computed with `DIV`. |
-| 🔁 | **Fund transfer** | Between accounts, with self-transfer and locked-receiver checks. |
-| 📈 | **Interest calculator** | Simple interest plus a year-by-year compound projection using `MUL` / `DIV`. |
-| 🧾 | **Transaction history** | Last 10 transactions per account in a **2D circular buffer**. |
-| 🔑 | **Change PIN** | Old PIN check, new PIN confirmed with `CMPSB`, buffers wiped with `STOSB`. |
-| 🛠️ | **Admin panel** | Hashed admin password, table of all accounts, **unlock** locked accounts. |
-| 💾 | **Persistent storage** | All data saved to `data/bank.dat` in one `WriteToFile` call and reloaded at startup. |
-| 🎨 | **Console UI** | Box-drawing frames, color scheme, splash screen, loading bar, animated "Processing...". |
+| Feature | Details |
+|---|---|
+| **Secure login** | Masked `****` PIN entry with Backspace. PINs are stored only as a hash built with `ROL`, `XOR` and `SHL`, never in plain form. |
+| **Account lock** | Three wrong PINs lock the account: a status bit set with `OR` and checked with `TEST`. The lock is saved, so restarting does not reset it. |
+| **Deposit** | 64-bit balances updated with `ADD` / `ADC`, with an overflow check. |
+| **Withdraw** | Any amount from Rs. 500 up to the available balance, using `SUB` / `SBB`. Shows the amount withdrawn and the new balance. |
+| **Money formatting** | Balances printed as `Rs. 50,000` by a recursive procedure that splits a 64-bit number with two 32-bit `DIV`s. |
+| **Fund transfer** | Between accounts, with checks for unknown, own and locked receiver accounts and insufficient balance. |
+| **Interest calculator** | 5% interest for one year plus a year-by-year compound projection (1 to 10 years) using `MUL` / `DIV`. |
+| **Transaction history** | Last 10 transactions per account in a two-dimensional circular buffer, oldest first, colored by type. |
+| **Change PIN** | Old PIN check, new PIN confirmed with `CMPSB`, PIN buffers wiped with `STOSB`. |
+| **Admin panel** | Hashed admin password, table of all accounts with colored status, unlock with `AND`. |
+| **Persistent storage** | All bank data lives in one memory block, saved to `data/bank.dat` with a single `WriteToFile` call and reloaded at startup. |
+| **Console UI** | Double-line box frames, a consistent color scheme, text centered with `SCASB`, splash screen with loading bar. |
 
-## Screenshots
+---
 
-| Main menu | Login | Admin panel |
-|---|---|---|
-| ![](docs/screenshots/main-menu.png) | ![](docs/screenshots/login.png) | ![](docs/screenshots/admin.png) |
+## Project Structure
 
-## COAL concepts used
-
-64-bit arithmetic (ADD/ADC, SUB/SBB) · MUL/DIV · shifts and rotates (SHL, ROL) ·
-bit flags (AND/OR/TEST) · string instructions (MOVSB, CMPSB, STOSB, SCASB) ·
-2D arrays · recursion with EBP stack frames · INVOKE/PROTO · Irvine32 file I/O
-
-## Project structure
-
-```
+```text
 secure-bank-asm/
 ├── include/
-│   └── bank_shared.inc              constants, colors, PROTOs, shared data declarations
+│   └── bank_shared.inc
 ├── src/
 │   ├── core/
-│   │   ├── main_menu.asm            entry point, main + user menus
-│   │   ├── bank_records.asm         all account data (one saveable block)
-│   │   ├── login_security.asm       PIN hashing, masked input, login, lock
-│   │   ├── deposit_withdraw.asm     balance, deposit, withdraw, cash notes
-│   │   └── number_input_output.asm  recursive 64-bit print, validated input
-│   ├── ui/
-│   │   └── console_ui.asm           boxes, colors, headers, splash, messages
-│   └── services/
-│       ├── transaction_history.asm  2D circular history buffer
-│       ├── fund_transfer.asm        account-to-account transfer
-│       ├── interest_calculator.asm  simple + compound interest
-│       ├── change_pin.asm           PIN change with confirmation
-│       ├── admin_panel.asm          account table, unlock
-│       └── file_storage.asm         save / load bank.dat
-├── data/                            bank.dat is created here at runtime
-└── docs/                            test cases, screenshots
+│   │   ├── bank_records.asm
+│   │   ├── deposit_withdraw.asm
+│   │   ├── login_security.asm
+│   │   ├── main_menu.asm
+│   │   └── number_input_output.asm
+│   ├── services/
+│   │   ├── admin_panel.asm
+│   │   ├── change_pin.asm
+│   │   ├── file_storage.asm
+│   │   ├── fund_transfer.asm
+│   │   ├── interest_calculator.asm
+│   │   └── transaction_history.asm
+│   └── ui/
+│       └── console_ui.asm
+├── data/
+├── docs/
+├── CONTRIBUTING.md
+├── LICENSE
+├── README.md
+├── SecureBank.sln
+└── SecureBank.vcxproj
 ```
 
-## How to build and run
+---
 
-**Requirements:** Windows, Visual Studio 2022 with the *Desktop development with C++* workload, and the [Irvine32 library](https://asmirvine.com/gettingStartedVS2022/index.htm) installed (usually in `C:\Irvine`).
+## How to Build and Run
 
-1. Clone the repo, or download it with **Code → Download ZIP**.
-2. Open `SecureBank.sln` in Visual Studio 2022.
+**Requirements:** Windows, Visual Studio 2022 or newer with the *Desktop development with C++* workload, and the [Irvine32 library](https://asmirvine.com/gettingStartedVS2022/index.htm) (usually installed in `C:\Irvine`).
+
+1. Clone the repo, or download it with **Code → Download ZIP** and **extract** it.
+2. Open `SecureBank.sln` in Visual Studio.
 3. Set the configuration to **Debug | x86** and press **Ctrl + F5**.
 
-`SecureBank.vcxproj` looks for Irvine32 in `C:\Irvine` and `D:\CS\irvine`, and for `bank_shared.inc` in the `include` folder. If your Irvine32 is somewhere else, add your path in **Project → Properties → Microsoft Macro Assembler → General → Include Paths** and **Linker → General → Additional Library Directories**.
+If your Irvine32 is not in `C:\Irvine`, add its path in **Project → Properties → Microsoft Macro Assembler → General → Include Paths** and **Linker → General → Additional Library Directories**. If Visual Studio offers to **retarget** the project, choose **Cancel**.
 
 ### Demo accounts
 
 | Account | Name | PIN | Balance |
-|---|---|---|---|
+|:---:|---|:---:|---:|
 | 1001 | Ali Khan | 1234 | Rs. 50,000 |
 | 1002 | Sara Ahmed | 4321 | Rs. 30,000 |
 | 1003 | Usman Tariq | 1111 | Rs. 75,000 |
-| 1004 | Hina Raza | 2580 | Rs. 1,200 *(locked; try unlocking it from admin)* |
+| 1004 | Hina Raza | 2580 | Rs. 1,200 *(locked)* |
 
-Admin password: `admin123`. To reset everything, delete `data/bank.dat`.
+Admin password: `admin123`. To reset all data, delete `data/bank.dat`.
 
-## Known limitations
+---
+
+## Known Limitations
 
 This is a learning project, not real banking software:
-- The PIN hash is a simple custom function with no per-account salt, so two accounts with the same PIN have the same hash. Real systems use salted, slow hashes (bcrypt, Argon2).
+- The PIN hash is a simple custom function without a salt, so equal PINs give equal hashes. Real systems use salted, slow hashes such as bcrypt or Argon2.
 - Amounts entered are limited to 32 bits (up to 4,294,967,295); balances are 64-bit.
-- `data/bank.dat` is not encrypted, and is read relative to the working directory, so run the program from Visual Studio.
+- `data/bank.dat` is not encrypted and is read relative to the working directory, so run the program from Visual Studio.
+
+<!-- Uncomment once the report is added
+---
+
+## Project Report
+
+The full report is in [docs/report/Secure_Bank_Report.pdf](docs/report/Secure_Bank_Report.pdf).
+-->
+
+---
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch, pull request and review workflow the team follows.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how the work was split, the Git workflow and the code conventions. All features are covered by the test cases in [docs/test-cases.md](docs/test-cases.md).
+
+---
 
 ## Team
 
-| Member | Owns |
+| Member | Role |
 |---|---|
-| **Ayousha** (Group Leader) | `include/`, `src/core/`, `src/ui/`: data, login and security, deposit/withdraw, number I/O, the whole console UI, integration |
-| **Batool Zehra** | `src/services/`: transaction history, transfer, interest, change PIN, admin panel, file storage |
+| **Ayousha Gulzar** | Group Leader |
+| **Batool Zehra** | Team Member |
+
+---
 
 ## Credits
 
 - Kip R. Irvine, *Assembly Language for x86 Processors*, 8th ed., and the Irvine32 library
 - Microsoft Macro Assembler (MASM) reference
+
+---
+
+## License
+
+Released under the [MIT License](LICENSE).
+
+---
+
+<p align="center">
+  <i>Built as the COAL Lab Project at FAST-NUCES Karachi, Fall 2026.</i>
+</p>
