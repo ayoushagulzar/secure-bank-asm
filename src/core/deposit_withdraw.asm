@@ -7,16 +7,16 @@ INCLUDE Irvine32.inc
 INCLUDE bank_shared.inc
 
 TEXT_COL = 22                    ; screen text starts here
-
+MIN_AMOUNT = 500                 ; min amount allowed per transaction
 .data
 titleBalance  BYTE "BALANCE INQUIRY", 0
 titleDep      BYTE "DEPOSIT", 0
 titleWdr      BYTE "WITHDRAW", 0
 labelBalance  BYTE "Available balance : ", 0
-promptAmt     BYTE "Enter amount (Rs.) : ", 0
+promptAmount  BYTE "Enter amount (Rs.) : ", 0
 msgInvalid    BYTE "Invalid amount.", 0
 msgNoFunds    BYTE "Insufficient balance.", 0
-msgNot500     BYTE "Amount must be a multiple of 500.", 0
+msgMinAmount  BYTE "Minimum transaction is Rs. 500.", 0
 msgOverflow   BYTE "Deposit rejected - balance limit exceeded.", 0
 msgDepositOk  BYTE "Deposit successful.", 0
 msgWdrOk      BYTE "Withdrawal successful. Please collect your cash.", 0
@@ -32,7 +32,7 @@ ShowBalance PROC USES ebx, accIndex:DWORD
     INVOKE PrintAt, TEXT_COL,   BODY_ROW+2, ADDR labelBalance
 
     mov ebx, accIndex
-    NVOKE PrintMoney, DWORD PTR accBalance[ebx*8], DWORD PTR accBalance[ebx*8+4]
+    INVOKE PrintMoney, DWORD PTR accBalance[ebx*8], DWORD PTR accBalance[ebx*8+4]
     INVOKE PressAnyKey
     ret
 ShowBalance ENDP
@@ -40,25 +40,26 @@ ShowBalance ENDP
 ;=========================== DEPOSIT PROC =================================
 Deposit PROC USES ebx, accIndex:DWORD
     INVOKE DrawHeader, ADDR titleDep
-    INVOKE PrintAt, TXT_COL, BODY_ROW+2, ADDR promptAmt
+    INVOKE PrintAt, TEXT_COL, BODY_ROW+2, ADDR promptAmount
     INVOKE ReadAmount               ; EAX = amount, 0 = invalid
     cmp eax, 0
     je  DepInvalid
 
     mov ebx , accIndex
     ADD DWORD PTR accBalance[ebx*8] , eax    ;low half of balance  + low half of amount(eax)
-    ADD DWORD PTR accBalance[ebx*8+4] , 0    ;high half of balance + high half of amount(eax)
+    ADC DWORD PTR accBalance[ebx*8+4] , 0    ;high half of balance + high half of amount (0) + carry
     jc DepOverflow
 
     INVOKE RecordTxn, accIndex, TXN_DEPOSIT, eax
     INVOKE ShowProcessing
     INVOKE ShowSuccess, ADDR msgDepositOk
-    INVOKE PrintAt, TXT_COL, BODY_ROW+4, ADDR labelBalance
+    INVOKE PrintAt, TEXT_COL, BODY_ROW+4, ADDR labelBalance
     INVOKE PrintMoney, DWORD PTR accBalance[ebx*8], DWORD PTR accBalance[ebx*8+4]
     jmp DepDone
 
  DepInvalid:
     INVOKE ShowError, ADDR msgInvalid
+    jmp DepDone
 
 DepOverflow:                                ; undo the add, balance stays the same
     sub DWORD PTR accBalance[ebx*8],   eax
@@ -71,16 +72,51 @@ DepDone:
     ret   
 Deposit ENDP
 
-;---------------------------------------------------------------------
-Withdraw PROC USES ebx edx, accIndex:DWORD
-;---------------------------------------------------------------------
-    ; TODO 1: ReadAmount -> 0 ? invalid
-    ; TODO 2: amount mod NOTE_SMALL must be 0  (DIV) else msgNot500
-    ; TODO 3: if high dword of balance = 0 and low dword < amount -> msgNoFunds
-    ; TODO 4: SUB DWORD PTR accBalance[ebx*8],   eax
-    ;         SBB DWORD PTR accBalance[ebx*8+4], 0
-    ; TODO 5: RecordTxn TXN_WITHDRAW, ShowProcessing,
-    ;         INVOKE DispenseCash, amount, ShowSuccess msgWdrOk
+;=========================== WITHDRAW PROC =================================
+Withdraw PROC USES eax ebx ecx, accIndex:DWORD
+    INVOKE DrawHeader, ADDR titleWdr
+    INVOKE PrintAt, TEXT_COL, BODY_ROW+2, ADDR promptAmount
+    INVOKE ReadAmount
+    cmp eax, 0
+    je  InvalidAmount
+
+    mov ecx, eax                    ; ECX = amount
+    cmp ecx, MIN_AMOUNT             ; at least 500 ?
+    jb  BelowMin                 ; below -> error
+
+    mov ebx , accIndex
+    cmp  DWORD PTR accBalance[ebx*8+4] , 0     ; enough money ?
+    ja EnoughAmount                            ;high half of balance > 0 ---> there is enough amount remaining
+    cmp  DWORD PTR accBalance[ebx*8] , ecx   
+    jb NoFunds                                 ;low half of balance < amount
+
+EnoughAmount:
+    ;withdraw money: balance - amount
+    sub DWORD PTR accBalance[ebx*8],   ecx       ;lower half
+    sbb DWORD PTR accBalance[ebx*8+4], 0         ;higher half - borrow
+
+    INVOKE RecordTxn, accIndex, TXN_WITHDRAW, ecx
+    INVOKE ShowProcessing
+    INVOKE PrintAt, TEXT_COL, BODY_ROW+3, ADDR labelBalance
+    INVOKE PrintMoney, DWORD PTR accBalance[ebx*8], DWORD PTR accBalance[ebx*8+4]
+    INVOKE DispenseCash, ecx
+    INVOKE ShowSuccess, ADDR msgWdrOk
+    jmp Done
+
+BelowMin:
+    INVOKE ShowError, ADDR msgMinAmount
+    jmp Done
+
+NoFunds:
+    INVOKE ShowError, ADDR msgNoFunds
+    jmp Done
+
+InvalidAmount:
+    INVOKE ShowError, ADDR msgInvalid
+    jmp Done
+
+Done:
+    INVOKE PressAnyKey
     ret
 Withdraw ENDP
 
