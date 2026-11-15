@@ -1,7 +1,4 @@
 ;=====================================================================
-; bank_records.asm  -  All bank records (shared data)
-;---------------------------------------------------------------------
-; Owner    : Ayousha
 ; Concepts : BYTE/DWORD/QWORD definitions, multiple initialisation,
 ;            DUP, parallel arrays, 2D array (accounts x transactions),
 ;            LABEL to mark one contiguous block for file saving
