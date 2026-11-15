@@ -1,14 +1,7 @@
 ;=====================================================================
-; file_storage.asm  -  Save / load all bank data to a file
-;---------------------------------------------------------------------
-; Owner    : Batool Zehra 
 ; Concepts : Irvine32 file I/O (CreateOutputFile, OpenInputFile,
 ;            WriteToFile, ReadFromFile, CloseFile), OFFSET arithmetic
 ;            to get the block size, error checking with CMP / JE
-;
-; The whole block between bankDataStart and bankDataEnd (bank_records.asm) is
-; written in ONE call, so balances, PIN hashes, lock status and
-; history all survive after the program closes.
 ;=====================================================================
 INCLUDE Irvine32.inc
 INCLUDE bank_shared.inc
@@ -18,16 +11,10 @@ fileName    BYTE "data\bank.dat", 0
 fileHandle  DWORD ?
 
 .code
-;---------------------------------------------------------------------
-SaveData PROC USES eax ecx edx
-;---------------------------------------------------------------------
-    ; TODO: mov edx, OFFSET fileName / call CreateOutputFile
-    ;       cmp eax, INVALID_HANDLE_VALUE / je done
-    ;       mov fileHandle, eax
-    ;       mov ecx, OFFSET bankDataEnd / sub ecx, OFFSET bankDataStart  ; size
-    ;       mov edx, OFFSET bankDataStart / mov eax, fileHandle
-    ;       call WriteToFile / mov eax, fileHandle / call CloseFile
+;====================== SAVE DATA PROC ======================
+; writes the whole bank data block to data\bank.dat
 
+SaveData PROC USES eax ecx edx
     mov edx,offset  fileName
 Call CreateOutputFile
 
@@ -50,13 +37,10 @@ done:
     ret
 SaveData ENDP
 
-;---------------------------------------------------------------------
+;====================== LOAD DATA PROC ======================
+; reads data\bank.dat back (missing file = first run, keep default accounts)
+
 LoadData PROC USES eax ecx edx
-; If the file does not exist (first run), keep the default accounts
-; from bank_records.asm - this is NOT an error.
-;---------------------------------------------------------------------
-    ; TODO: OpenInputFile -> INVALID_HANDLE_VALUE ? ret
-    ;       ReadFromFile into bankDataStart with the same size, CloseFile
     
 mov edx,OFFSET fileName
 call OpenInputFile

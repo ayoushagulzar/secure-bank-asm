@@ -1,7 +1,4 @@
 ;=====================================================================
-; change_pin.asm  -  Change PIN
-;---------------------------------------------------------------------
-; Owner    : Batool Zehra 
 ; Concepts : string instructions (CMPSB to confirm new PIN twice,
 ;            STOSB to wipe PIN buffers), hashing, procedure calls
 ;=====================================================================
@@ -23,23 +20,10 @@ newBuf      BYTE (PIN_LEN + 1) DUP(0)
 confBuf     BYTE (PIN_LEN + 1) DUP(0)
 
 .code
-;---------------------------------------------------------------------
+;====================== CHANGE PIN PROC ======================
+; changes the PIN of the logged-in account (only the hash is stored)
+
 ChangePin PROC USES eax ebx ecx esi edx edi, accIndex:DWORD
-;---------------------------------------------------------------------
-    ; TODO 1: DrawHeader titlePin
-    ; TODO 2: ReadMasked oldBuf -> VerifyPin accIndex -> 0 ? msgWrong
-    ; TODO 3: ReadMasked newBuf -> length must be PIN_LEN else msgLen
-    ;         VerifyPin with newBuf -> 1 ? msgSame
-    ; TODO 4: ReadMasked confBuf, compare newBuf vs confBuf with
-    ;         mov ecx, PIN_LEN / cld / repe cmpsb -> JNE msgMismatch
-    ; TODO 5: INVOKE HashString, ADDR newBuf, PIN_LEN
-    ;         store EAX in accPinHash[accIndex*4], INVOKE SaveData
-    ; TODO 6: wipe all three buffers with REP STOSB (AL = 0)
-    ;         mov edi, OFFSET newBuf / mov ecx, SIZEOF newBuf / cld / rep stosb
-    ;         ShowSuccess msgOk, PressAnyKey
-
-
-
     INVOKE DrawHeader , ADDR titlePin
 mov edx,offset promptOld
 call WriteString
@@ -79,7 +63,6 @@ mov accPinHash[ebx*4],eax
 INVOKE SaveData
 INVOKE ShowSuccess, ADDR msgOk
 jmp Wipe
-
 
 WrongPin:
 INVOKE ShowError, ADDR msgWrong

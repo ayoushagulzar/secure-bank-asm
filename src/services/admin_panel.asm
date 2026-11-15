@@ -1,7 +1,4 @@
 ;=====================================================================
-; admin_panel.asm  -  Admin mode (password protected)
-;---------------------------------------------------------------------
-; Owner    : Batool Zehra 
 ; Concepts : hashed password check, LOOP over parallel arrays,
 ;            TEST / AND on status bits (show + unlock),
 ;            formatted table output with colors
@@ -32,17 +29,11 @@ status_msg byte " status: ",0
 
 no_account_msg byte " No accounts ",0
 
-
 .code
-;---------------------------------------------------------------------
-AdminMode PROC USES eax edx
-; Read password masked: INVOKE ReadMasked, ADDR passBuf, PASS_MAX
-;   (EAX = length typed - pass it to HashString)
-; HashString(passBuf, len) == adminHash ? show menu : msgBadPass
-; Menu loop: 1 -> ListAccounts, 2 -> UnlockAccount, 0 -> ret
-;---------------------------------------------------------------------
-    ; TODO
+;====================== ADMIN MODE PROC ======================
+; admin password check, then the admin menu
 
+AdminMode PROC USES eax edx
 call Clrscr
 mov edx, OFFSET promptPass
 call WriteString
@@ -95,19 +86,10 @@ Finish:
     ret
 AdminMode ENDP
 
-;---------------------------------------------------------------------
-ListAccounts PROC USES eax ebx ecx edx esi edi
-; Table of all accCount accounts:
-;   accNo (WriteDec), accName (OFFSET accName + i*NAME_LEN),
-;   balance (PrintMoney), status: TEST accStatus[i], STATUS_LOCKED
-;   -> "LOCKED" in CLR_ERROR, "ACTIVE" in CLR_SUCCESS
-; Use Gotoxy to line the columns up.
-; Name column: copy the name into a fixed-width buffer with
-;   mov esi, <name address> / mov edi, OFFSET nameCol / mov ecx, NAME_LEN
-;   cld / rep movsb       (MOVSB - promised in the proposal)
-;---------------------------------------------------------------------
-    ; TODO
+;====================== LIST ACCOUNTS PROC ======================
+; table of all accounts with colored ACTIVE / LOCKED status
 
+ListAccounts PROC USES eax ebx ecx edx esi edi
     call Clrscr
 
     ;account number
@@ -126,7 +108,6 @@ call Gotoxy
 mov edx,offset name_msg
 call WriteString
 
-
 ;balance
 mov dl,35
 mov dh,2
@@ -134,7 +115,6 @@ call Gotoxy
 
 mov edx,offset balance_msg
 call WriteString
-
 
 ;status
 mov dl,50
@@ -148,17 +128,10 @@ mov ebx,0
 cmp accCount,0
 je NoAccounts
 
-
-
 RowLoop: 
-
 
 cmp ebx,accCount
 je done
-
-
-
-
 
 mov dh,3
 add dh,bl
@@ -181,7 +154,6 @@ mov dl,12
 call Gotoxy
 mov edx,OFFSET nameCol
 call WriteString
-
 
 mov dh,3
 add dh,bl
@@ -214,7 +186,6 @@ call SetTextColor
 add ebx,1
 jmp RowLoop
 
-
 NoAccounts:
 mov dh,3
 mov dl,2
@@ -233,14 +204,10 @@ call Gotoxy
     ret
 ListAccounts ENDP
 
-;---------------------------------------------------------------------
-UnlockAccount PROC USES eax ebx edx
-; Read account number -> FindAccount -> not locked ? msgNotLock
-; AND accStatus[ebx], 0FEh     ; clear bit 0 = the lock bit
-; mov accFailCount[i], 0 ; INVOKE SaveData ; ShowSuccess msgUnlocked
-;---------------------------------------------------------------------
-    ; TODO
+;====================== UNLOCK ACCOUNT PROC ======================
+; clears the lock bit of an account and resets its wrong-PIN count
 
+UnlockAccount PROC USES eax ebx edx
 ; Step 1: ask for the account number
 mov edx, OFFSET promptUnl
 call WriteString
