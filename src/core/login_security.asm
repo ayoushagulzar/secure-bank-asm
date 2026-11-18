@@ -175,13 +175,13 @@ PinLoop:
     cmp eax, 1
     je  PinOk
 
-    ---- wrong PIN: count it ----
+    ;---- wrong PIN: count it ----
     inc accFailCount[ebx]       ; wrong PIN
     movzx eax, accFailCount[ebx]
     cmp eax, MAX_PIN_TRIES
     jae LockAccount
 
-    ---- show "attempts left" and try again ----
+    ;---- show "attempts left" and try again ----
     INVOKE ShowError, ADDR msgWrongPin
     mov ecx, MAX_PIN_TRIES
     sub ecx, eax                ; attempts left

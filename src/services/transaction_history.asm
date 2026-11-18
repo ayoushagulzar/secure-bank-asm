@@ -7,6 +7,8 @@
 INCLUDE Irvine32.inc
 INCLUDE bank_shared.inc
 
+TEXT_COL = 22
+
 .data
 titleHist   BYTE "TRANSACTION HISTORY", 0
 hdrHist     BYTE " #   TYPE            AMOUNT (Rs.)", 0
@@ -16,7 +18,7 @@ strWdr      BYTE "Withdraw      ", 0
 strXOut     BYTE "Transfer Out  ", 0
 strXIn      BYTE "Transfer In   ", 0
 strInt      BYTE "Interest      ", 0
-strGap      BYTE "   ", 0
+strGap      BYTE "  ", 0
 
 .code
 ;====================== RECORD TXN PROC ======================
@@ -56,9 +58,9 @@ RecordTxn ENDP
 ShowHistory PROC USES eax ebx ecx edx esi, accIndex:DWORD
     LOCAL rowNo:DWORD, pos:DWORD
     INVOKE DrawHeader, ADDR titleHist
-    mov  edx, OFFSET hdrHist
-    call WriteString
-    call Crlf
+    INVOKE SetColor, CLR_HIGHLIGHT
+    INVOKE PrintAt, TEXT_COL, BODY_ROW+1, ADDR hdrHist     ; table heading
+    INVOKE ResetColor
 
     mov  esi, accIndex
     mov  ecx, txnCount[esi*4]
@@ -78,8 +80,17 @@ histLoop:
     push ecx
 
     inc  rowNo
+    mov  dh, BODY_ROW+2                 ; row = BODY_ROW+3 .. BODY_ROW+12
+    add  dh, BYTE PTR rowNo
+    mov  dl, TEXT_COL+1
+    call Gotoxy                        
     mov  eax, rowNo
     call WriteDec
+    cmp  eax, 10
+    jae  numDone
+    mov  al, ' '                       
+    call WriteChar
+numDone:
     mov  edx, OFFSET strGap
     call WriteString
 
@@ -101,39 +112,33 @@ histLoop:
     jmp  tInt
 
 tDep:
-    mov  eax, CLR_SUCCESS
-    call SetTextColor
+    INVOKE SetColor, CLR_SUCCESS        ; green
     mov  edx, OFFSET strDep
     jmp  printType
 tWdr:
-    mov  eax, CLR_ERROR
-    call SetTextColor
+    INVOKE SetColor, CLR_ERROR          ; red
     mov  edx, OFFSET strWdr
     jmp  printType
 tXOut:
-    mov  eax, CLR_ERROR
-    call SetTextColor
+    INVOKE SetColor, CLR_ERROR          ; red
     mov  edx, OFFSET strXOut
     jmp  printType
 tXIn:
-    mov  eax, CLR_SUCCESS
-    call SetTextColor
+    INVOKE SetColor, CLR_SUCCESS        ; green
     mov  edx, OFFSET strXIn
     jmp  printType
 tInt:
-    mov  eax, CLR_SUCCESS
-    call SetTextColor
+    INVOKE SetColor, CLR_SUCCESS        ; green
     mov  edx, OFFSET strInt
 
 printType:
-    call WriteString
+    call WriteString                    
 
     mov  eax, pos
     mov  eax, txnAmount[eax*4]
     INVOKE PrintMoney, eax, 0
 
     INVOKE ResetColor
-    call Crlf
 
     inc  ebx
     cmp  ebx, MAX_TXN

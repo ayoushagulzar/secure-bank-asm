@@ -5,6 +5,8 @@
 INCLUDE Irvine32.inc
 INCLUDE bank_shared.inc
 
+TEXT_COL = 22
+
 .data
 titleInt    BYTE "INTEREST CALCULATOR", 0
 lblRate     BYTE "Annual rate        : 5 %", 0
@@ -21,13 +23,8 @@ msgBadYears BYTE "Please enter 1 to 10 years.", 0
 CalcInterest PROC USES eax ebx ecx edx esi, accIndex:DWORD
     LOCAL amt:DWORD, yearNo:DWORD
     INVOKE DrawHeader, ADDR titleInt
-
-    mov  edx, OFFSET lblRate
-    call WriteString
-    call Crlf
-
-    mov  edx, OFFSET lblYearly
-    call WriteString
+    INVOKE PrintAt, TEXT_COL, BODY_ROW+1, ADDR lblRate
+    INVOKE PrintAt, TEXT_COL, BODY_ROW+2, ADDR lblYearly
 
     mov  esi, accIndex
     mov  eax, DWORD PTR accBalance[esi*8]
@@ -36,10 +33,8 @@ CalcInterest PROC USES eax ebx ecx edx esi, accIndex:DWORD
     mov  ebx, 100
     div  ebx
     INVOKE PrintMoney, eax, 0
-    call Crlf
 
-    mov  edx, OFFSET promptYears
-    call WriteString
+    INVOKE PrintAt, TEXT_COL, BODY_ROW+4, ADDR promptYears
     call ReadDec
     jc   errYears
     cmp  eax, 1
@@ -63,14 +58,15 @@ yearLoop:
     add  amt, eax
     inc  yearNo
 
-    mov  edx, OFFSET lblYear
-    call WriteString
+    mov  eax, yearNo
+    add  eax, BODY_ROW+5                         ; year 1 -> BODY_ROW+6, year 2 -> BODY_ROW+7, ...
+    INVOKE PrintAt, TEXT_COL, eax, ADDR lblYear
     mov  eax, yearNo
     call WriteDec
+
     mov  edx, OFFSET lblArrow
     call WriteString
     INVOKE PrintMoney, amt, 0
-    call Crlf
 
     pop  ecx
     dec  ecx
