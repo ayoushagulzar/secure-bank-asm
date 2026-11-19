@@ -5,6 +5,8 @@
 INCLUDE Irvine32.inc
 INCLUDE bank_shared.inc
 
+TEXT_COL = 22
+
 .data
 titlePin    BYTE "CHANGE PIN", 0
 promptOld   BYTE "Current PIN : ", 0
@@ -25,77 +27,72 @@ confBuf     BYTE (PIN_LEN + 1) DUP(0)
 
 ChangePin PROC USES eax ebx ecx esi edx edi, accIndex:DWORD
     INVOKE DrawHeader , ADDR titlePin
-mov edx,offset promptOld
-call WriteString
-INVOKE ReadMasked, ADDR oldBuf, PIN_LEN
-call Crlf
-INVOKE VerifyPin ,  accIndex, ADDR oldBuf , eax
-cmp eax,0
-je WrongPin
+    INVOKE PrintAt, TEXT_COL, BODY_ROW+2, ADDR promptOld
+    INVOKE ReadMasked, ADDR oldBuf, PIN_LEN
 
-mov edx,offset promptNew
-call WriteString
-INVOKE ReadMasked , ADDR newBuf, PIN_LEN 
-call Crlf
+    INVOKE VerifyPin ,  accIndex, ADDR oldBuf , eax
+    cmp eax,0
+    je WrongPin
 
-cmp eax,PIN_LEN
-jne BadLen
+    INVOKE PrintAt, TEXT_COL, BODY_ROW+3, ADDR promptNew
+    INVOKE ReadMasked , ADDR newBuf, PIN_LEN 
 
-INVOKE VerifyPin ,  accIndex,ADDR newBuf, PIN_LEN
-cmp eax,1
-je SamePin
+    cmp eax,PIN_LEN
+    jne BadLen
 
-mov edx,offset promptConf
-call WriteString
-INVOKE ReadMasked , ADDR confBuf ,  PIN_LEN 
-call Crlf
+    INVOKE VerifyPin ,  accIndex,ADDR newBuf, PIN_LEN
+    cmp eax,1
+    je SamePin
 
-mov esi, OFFSET newBuf
-mov edi, OFFSET confBuf
-mov ecx, PIN_LEN
-cld
-repe cmpsb
-jne Mismatch
+    INVOKE PrintAt, TEXT_COL, BODY_ROW+4, ADDR promptConf
+    INVOKE ReadMasked , ADDR confBuf ,  PIN_LEN 
 
-INVOKE HashString , ADDR newBuf ,  PIN_LEN
-mov ebx, accIndex
-mov accPinHash[ebx*4],eax
-INVOKE SaveData
-INVOKE ShowSuccess, ADDR msgOk
-jmp Wipe
+    mov esi, OFFSET newBuf
+    mov edi, OFFSET confBuf
+    mov ecx, PIN_LEN
+    cld
+    repe cmpsb
+    jne Mismatch
+
+    INVOKE HashString , ADDR newBuf ,  PIN_LEN
+    mov ebx, accIndex
+    mov accPinHash[ebx*4],eax
+    INVOKE SaveData
+    INVOKE ShowSuccess, ADDR msgOk
+    jmp Wipe
 
 WrongPin:
-INVOKE ShowError, ADDR msgWrong
-jmp Wipe
+    INVOKE ShowError, ADDR msgWrong
+    jmp Wipe
 
 BadLen:
-INVOKE ShowError, ADDR msgLen
-jmp Wipe
+    INVOKE ShowError, ADDR msgLen
+    jmp Wipe
 
 SamePin:
-INVOKE ShowError, ADDR msgSame
-jmp Wipe
+    INVOKE ShowError, ADDR msgSame
+    jmp Wipe
 
 Mismatch:
-INVOKE ShowError, ADDR msgMismatch
+    INVOKE ShowError, ADDR msgMismatch
 
 Wipe:
-mov al, 0
-cld
+    mov al, 0
+    cld
 
-mov edi, OFFSET oldBuf
-mov ecx, SIZEOF oldBuf
-rep stosb
+    mov edi, OFFSET oldBuf
+    mov ecx, SIZEOF oldBuf
+    rep stosb
 
-mov edi, OFFSET newBuf
-mov ecx, SIZEOF newBuf
-rep stosb
+    mov edi, OFFSET newBuf
+    mov ecx, SIZEOF newBuf
+    rep stosb
 
-mov edi, OFFSET confBuf
-mov ecx, SIZEOF confBuf
-rep stosb
+    mov edi, OFFSET confBuf
+    mov ecx, SIZEOF confBuf
+    rep stosb
 
-INVOKE PressAnyKey
+    INVOKE PressAnyKey
 
     ret
 ChangePin ENDP

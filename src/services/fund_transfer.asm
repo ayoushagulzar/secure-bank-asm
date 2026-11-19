@@ -5,6 +5,8 @@
 INCLUDE Irvine32.inc
 INCLUDE bank_shared.inc
 
+TEXT_COL = 22
+
 .data
 titleXfer   BYTE "FUND TRANSFER", 0
 promptTo    BYTE "Receiver account number : ", 0
@@ -24,9 +26,9 @@ lblNewBal   BYTE "New balance : ", 0
 Transfer PROC USES eax ebx ecx edx esi edi, accIndex:DWORD
     LOCAL recvIdx:DWORD, amount:DWORD
     INVOKE DrawHeader, ADDR titleXfer
-    mov  edx, OFFSET promptTo
-    call WriteString
+    INVOKE PrintAt, TEXT_COL, BODY_ROW+2, ADDR promptTo
     call ReadDec
+    jc errNoAcc
 
     INVOKE FindAccount, eax
     cmp  eax, -1
@@ -40,8 +42,7 @@ Transfer PROC USES eax ebx ecx edx esi edi, accIndex:DWORD
     test accStatus[esi], STATUS_LOCKED
     jnz  errLocked
 
-    mov  edx, OFFSET promptAmt
-    call WriteString
+    INVOKE PrintAt, TEXT_COL, BODY_ROW+3, ADDR promptAmt
     INVOKE ReadAmount
     cmp  eax, 0
     je   errInvalid
@@ -66,12 +67,11 @@ BalanceOK:
     INVOKE RecordTxn, accIndex, TXN_XFER_OUT, amount
     INVOKE RecordTxn, recvIdx,  TXN_XFER_IN,  amount
     INVOKE ShowProcessing
-    INVOKE ShowSuccess, ADDR msgOk
+    INVOKE PrintAt, TEXT_COL, BODY_ROW+5, ADDR lblNewBal
 
-    mov  edx, OFFSET lblNewBal
-    call WriteString
     mov  esi, accIndex
     INVOKE PrintMoney, DWORD PTR accBalance[esi*8], DWORD PTR accBalance[esi*8+4]
+    INVOKE ShowSuccess, ADDR msgOk
     INVOKE PressAnyKey
     jmp  XferDone
 
