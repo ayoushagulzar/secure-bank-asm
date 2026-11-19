@@ -8,8 +8,8 @@ Every file has exactly one owner.
 
 | Member | Owns | Also responsible for |
 |---|---|---|
-| **Ayousha** (Group Leader) | `include/`, `src/core/`, `src/ui/`, project files, `docs/` | Reviewing and merging every pull request, integration, README and CONTRIBUTING |
-| **Batool Zehra** | `src/services/` | — |
+| **Ayousha** (Group Leader) | `include/`, `src/core/`, `src/ui/`, `src/services/interest_inline.cpp`, project files, `docs/` | Reviewing and merging every pull request, integration, README and CONTRIBUTING |
+| **Batool Zehra** | `src/services/` (all `.asm` files) | — |
 | **Both** | — | Running all test cases, writing the project report |
 
 
@@ -35,6 +35,12 @@ All work happens on a branch and reaches `main` through a **pull request**.
 
 `include/bank_shared.inc` holds every constant, color, `PROTO` and shared data declaration.
 
+Irvine32.inc makes `STDCALL` the default, so assembly procedures use a plain `PROTO`. A function written in C++ is declared with `PROTO C` instead, because C++ (`extern "C"`) uses the C calling convention, where the caller removes the arguments:
+
+```asm
+CalcYearInterest PROTO C, amount:DWORD, rate:DWORD   ; defined in interest_inline.cpp
+```
+
 ## 5. Code conventions
 
 | Thing | Style | Example |
@@ -43,10 +49,16 @@ All work happens on a branch and reaches `main` through a **pull request**.
 | Procedures | PascalCase verb + noun | `RecordTxn`, `ShowHistory` |
 | Data labels | camelCase | `accBalance`, `msgNoFunds` |
 | Constants | UPPER_CASE | `MAX_TXN`, `CLR_ERROR` |
+| C++ functions called from asm | PascalCase, `extern "C"` | `CalcYearInterest` |
 
 - Every file starts with a header listing the COAL concepts used.
 - Every procedure saves the registers it changes (`USES` or `PUSH`/`POP`), except `EAX` when it carries the result.
-- Screens use only the helpers in `console_ui.asm` and the `CLR_*` colors from the shared header.
+- A C++ function may change `EAX`, `ECX` and `EDX`, so save any of them you still need before calling it (the interest loop pushes `ECX`).
+- Screens use only the helpers in `console_ui.asm` and the `CLR_*` colors from the shared header:
+  - every screen starts with `DrawHeader` and ends with `PressAnyKey`
+  - text that starts at a new position uses `PrintAt` if it begins with a string, or `Gotoxy` if it begins with a number or character (`WriteDec`, `WriteChar`, `PrintMoney`)
+  - text that continues the same line uses `WriteString`
+  - prompts start at column `TEXT_COL = 22`, from `BODY_ROW`; messages go through `ShowSuccess` / `ShowError` / `ShowInfo`
 
 ## 6. Testing
 

@@ -22,7 +22,7 @@
 
 ## About
 
-Secure Bank is a console ATM written entirely in **32-bit x86 Assembly (MASM)** with the **Irvine32** library. It has hashed PINs, account locking, 64-bit balances, a transaction history kept in a 2D circular buffer, and data that is **saved to disk** between runs, all in a styled, colored console interface.
+Secure Bank is a console ATM written in **32-bit x86 Assembly (MASM)** with the **Irvine32** library, plus one small C++ module that uses **inline assembly** (`__asm`). It has hashed PINs, account locking, 64-bit balances, a transaction history kept in a 2D circular buffer, and data that is **saved to disk** between runs, all in a styled, colored console interface.
 
 ---
 
@@ -36,7 +36,7 @@ Secure Bank is a console ATM written entirely in **32-bit x86 Assembly (MASM)** 
 | **Withdraw** | Any amount from Rs. 500 up to the available balance, using `SUB` / `SBB`. Shows the amount withdrawn and the new balance. |
 | **Money formatting** | Balances printed as `Rs. 50,000` by a recursive procedure that splits a 64-bit number with two 32-bit `DIV`s. |
 | **Fund transfer** | Between accounts, with checks for unknown, own and locked receiver accounts and insufficient balance. |
-| **Interest calculator** | 5% interest for one year plus a year-by-year compound projection (1 to 10 years) using `MUL` / `DIV`. |
+| **Interest calculator** | 5% interest for one year plus a year-by-year compound projection (1 to 10 years). The interest itself is calculated by `CalcYearInterest`, a C++ function whose body is an **inline assembly** (`__asm`) block using `MUL` / `DIV`, called from assembly with `PROTO C` + `INVOKE`. |
 | **Transaction history** | Last 10 transactions per account in a two-dimensional circular buffer, oldest first, colored by type. |
 | **Change PIN** | Old PIN check, new PIN confirmed with `CMPSB`, PIN buffers wiped with `STOSB`. |
 | **Admin panel** | Hashed admin password, table of all accounts with colored status, unlock with `AND`. |
@@ -49,6 +49,8 @@ Secure Bank is a console ATM written entirely in **32-bit x86 Assembly (MASM)** 
 
 ```text
 secure-bank-asm/
+├── .github/
+│   └── pull_request_template.md
 ├── include/
 │   └── bank_shared.inc
 ├── src/
@@ -64,16 +66,19 @@ secure-bank-asm/
 │   │   ├── file_storage.asm
 │   │   ├── fund_transfer.asm
 │   │   ├── interest_calculator.asm
+│   │   ├── interest_inline.cpp
 │   │   └── transaction_history.asm
 │   └── ui/
 │       └── console_ui.asm
 ├── data/
 ├── docs/
+│   └── test-cases.md
 ├── CONTRIBUTING.md
 ├── LICENSE
 ├── README.md
 ├── SecureBank.sln
-└── SecureBank.vcxproj
+├── SecureBank.vcxproj
+└── SecureBank.vcxproj.filters
 ```
 
 ---
@@ -84,7 +89,8 @@ secure-bank-asm/
 
 1. Clone the repo, or download it with **Code → Download ZIP** and **extract** it.
 2. Open `SecureBank.sln` in Visual Studio.
-3. Set the configuration to **Debug | x86** and press **Ctrl + F5**.
+3. Set the configuration to **Debug | x86** and press **Ctrl + F5**. It must be x86: inline assembly only works in 32-bit programs.
+4. The screens are laid out for an **80 × 25** console. In Windows Terminal, set **Settings → Startup → Launch size** to 80 columns and 25 rows, otherwise everything appears shifted to the left.
 
 If your Irvine32 is not in `C:\Irvine`, add its path in **Project → Properties → Microsoft Macro Assembler → General → Include Paths** and **Linker → General → Additional Library Directories**. If Visual Studio offers to **retarget** the project, choose **Cancel**.
 
@@ -106,6 +112,7 @@ Admin password: `admin123`. To reset all data, delete `data/bank.dat`.
 This is a learning project, not real banking software:
 - The PIN hash is a simple custom function without a salt, so equal PINs give equal hashes. Real systems use salted, slow hashes such as bcrypt or Argon2.
 - Amounts entered are limited to 32 bits (up to 4,294,967,295); balances are 64-bit.
+- The interest calculator uses only the low 32 bits of the balance, so it is correct only for balances up to 4,294,967,295.
 - `data/bank.dat` is not encrypted and is read relative to the working directory, so run the program from Visual Studio.
 
 <!-- Uncomment once the report is added
