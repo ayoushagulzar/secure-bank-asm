@@ -122,6 +122,7 @@ Transfer        PROTO, accIndex:DWORD
 
 ;----------------------- interest_calculator.asm ----------------------
 CalcInterest    PROTO, accIndex:DWORD
+CalcYearInterest PROTO C, amount:DWORD, rate:DWORD   ; EAX = amount * rate / 100
 
 ;----------------------- change_pin.asm -------------------------------
 ChangePin       PROTO, accIndex:DWORD
