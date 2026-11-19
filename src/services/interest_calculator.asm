@@ -1,5 +1,6 @@
 ;=====================================================================
-; Concepts : MUL and DIV (interest = balance * rate / 100),
+; Concepts : calling a C++ function from assembly (PROTO C + INVOKE),
+;            the C++ function uses INLINE ASSEMBLY (interest_inline.cpp),
 ;            LOOP for compound projection over N years
 ;=====================================================================
 INCLUDE Irvine32.inc
@@ -19,6 +20,7 @@ msgBadYears BYTE "Please enter 1 to 10 years.", 0
 .code
 ;====================== CALC INTEREST PROC ======================
 ; interest for 1 year + year-by-year compound projection (display only)
+; the interest itself is calculated by CalcYearInterest (inline asm in C++)
 
 CalcInterest PROC USES eax ebx ecx edx esi, accIndex:DWORD
     LOCAL amt:DWORD, yearNo:DWORD
@@ -27,11 +29,7 @@ CalcInterest PROC USES eax ebx ecx edx esi, accIndex:DWORD
     INVOKE PrintAt, TEXT_COL, BODY_ROW+2, ADDR lblYearly
 
     mov  esi, accIndex
-    mov  eax, DWORD PTR accBalance[esi*8]
-    mov  ebx, INTEREST_RATE
-    mul  ebx
-    mov  ebx, 100
-    div  ebx
+    INVOKE CalcYearInterest, DWORD PTR accBalance[esi*8], INTEREST_RATE   ; EAX = balance * 5 / 100
     INVOKE PrintMoney, eax, 0
 
     INVOKE PrintAt, TEXT_COL, BODY_ROW+4, ADDR promptYears
@@ -48,22 +46,17 @@ CalcInterest PROC USES eax ebx ecx edx esi, accIndex:DWORD
     mov  yearNo, 0
 
 yearLoop:
-    push ecx
+    push ecx                            ; C++ functions may change ECX
 
-    mov  eax, amt
-    mov  ebx, INTEREST_RATE
-    mul  ebx
-    mov  ebx, 100
-    div  ebx
+    INVOKE CalcYearInterest, amt, INTEREST_RATE    ; EAX = amt * 5 / 100
     add  amt, eax
     inc  yearNo
 
     mov  eax, yearNo
-    add  eax, BODY_ROW+5                         ; year 1 -> BODY_ROW+6, year 2 -> BODY_ROW+7, ...
+    add  eax, BODY_ROW+5                ; year 1 -> BODY_ROW+6, year 2 -> BODY_ROW+7, ...
     INVOKE PrintAt, TEXT_COL, eax, ADDR lblYear
     mov  eax, yearNo
     call WriteDec
-
     mov  edx, OFFSET lblArrow
     call WriteString
     INVOKE PrintMoney, amt, 0
