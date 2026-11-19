@@ -20,7 +20,7 @@ msgBye      BYTE "Thank you for banking with Secure Bank!", 0
 
 msgWelcome     BYTE "Welcome, ", 0
 labelAccNo     BYTE "    Acc: ", 0
-optBalance     BYTE "[1]  Balance Inquiry", 0
+optBalance     BYTE "[1]  Balance Inquiry", 0  
 optDeposite    BYTE "[2]  Deposit", 0
 optWithdraw    BYTE "[3]  Withdraw", 0
 optFundTran    BYTE "[4]  Fund Transfer", 0
