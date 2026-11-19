@@ -13,11 +13,11 @@ extern "C" unsigned int CalcYearInterest(unsigned int amount, unsigned int rate)
 
     __asm
     {
-        mov  eax, amount; C++ parameter used by name
-        mul  rate; EDX:EAX = amount * rate
+        mov  eax, amount        ; C++ parameter used by name
+        mul  rate               ; EDX:EAX = amount * rate
         mov  ebx, 100
-        div  ebx; EAX = (amount * rate) / 100
-        mov  interest, eax; store the result in a C++ variable
+        div  ebx                ; EAX = (amount * rate) / 100
+        mov  interest, eax      ; store the result in a C++ variable
     }
 
     return interest;            // returned to the assembly caller in EAX
