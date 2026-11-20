@@ -41,23 +41,28 @@ MakeFilePath ENDP
 ; writes the whole bank data block to data\bank.dat
 
 SaveData PROC USES eax ecx edx
+    INVOKE MakeFilePath                 ; fileName = full path
     mov edx,offset  fileName
-Call CreateOutputFile
+    Call CreateOutputFile
 
-cmp eax, INVALID_HANDLE_VALUE
-je done
-mov fileHandle,eax
+    cmp eax, INVALID_HANDLE_VALUE
+    je SaveFail                             
+    mov fileHandle,eax
 
-mov ecx,OFFSET bankDataEnd
-sub ecx,OFFSET bankDataStart
+    mov ecx,OFFSET bankDataEnd
+    sub ecx,OFFSET bankDataStart
 
-mov edx, OFFSET bankDataStart
-mov eax,fileHandle
-Call WriteToFile
+    mov edx, OFFSET bankDataStart
+    mov eax,fileHandle
+    Call WriteToFile
 
-mov eax,fileHandle
-Call CloseFile
+    mov eax,fileHandle
+    Call CloseFile
+    jmp done                                
 
+SaveFail:                              
+    INVOKE ShowError, ADDR msgSaveFail
+    INVOKE PressAnyKey
 done:
 
     ret
