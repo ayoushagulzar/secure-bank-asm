@@ -72,23 +72,23 @@ SaveData ENDP
 ; reads data\bank.dat back (missing file = first run, keep default accounts)
 
 LoadData PROC USES eax ecx edx
-    
-mov edx,OFFSET fileName
-call OpenInputFile
-cmp eax,INVALID_HANDLE_VALUE
-je done
+      INVOKE MakeFilePath 
+    mov edx,OFFSET fileName
+    call OpenInputFile
+    cmp eax,INVALID_HANDLE_VALUE
+    je done
 
-mov fileHandle , eax
+    mov fileHandle , eax
 
-mov ecx,OFFSET bankDataEnd
-sub ecx,OFFSET bankDataStart
+    mov ecx,OFFSET bankDataEnd
+    sub ecx,OFFSET bankDataStart
 
-mov edx, OFFSET bankDataStart
-mov eax, fileHandle
-Call ReadFromFile
+    mov edx, OFFSET bankDataStart
+    mov eax, fileHandle
+    Call ReadFromFile
 
-mov eax,fileHandle 
-call CloseFile
+    mov eax,fileHandle 
+    call CloseFile
 
 done:
 ret
