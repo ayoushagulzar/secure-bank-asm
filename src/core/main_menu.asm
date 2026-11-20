@@ -9,6 +9,7 @@ MENU_COL = (SCREEN_W - 30) / 2      ; = 25, centers a 30-wide box
 USER_COL  = (SCREEN_W - 32) / 2      ; = 24, centers a 32-wide box
 
 .data
+menuInput   BYTE 10 DUP(0)                  ; typed menu option
 titleMain   BYTE "MAIN MENU", 0
 titleUser   BYTE "ACCOUNT SERVICES", 0
 optLogin    BYTE "[1]  User Login", 0
@@ -51,7 +52,7 @@ MenuLoop:
     INVOKE PrintAt, MENU_COL+3, BODY_ROW+4, ADDR optExit
     INVOKE PrintAt, MENU_COL+3, BODY_ROW+7, ADDR promptOpt
     
-    call ReadDec
+    call ReadMenuOption
     jc InvalidInput
     cmp eax , 1         ;1 = user login
     je U_Login
@@ -115,7 +116,7 @@ UserLoop:
     INVOKE PrintAt, USER_COL+3, BODY_ROW+9, ADDR optLogout
     INVOKE PrintAt, USER_COL+3, BODY_ROW+12, ADDR promptOpt
 
-    call ReadDec
+    call ReadMenuOption
     jc InvalidInput
     cmp eax, 7
     ja  InvalidInput
@@ -175,5 +176,33 @@ ChangePinLabel:
 Logout:
     ret
 UserMenu ENDP
+
+;========================= READ MENU OPTION PROC =========================
+; one digit 0-9 -> EAX, CF = 1 if anything else was typed
+
+ReadMenuOption PROC USES ecx edx
+    mov edx, OFFSET menuInput
+    mov ecx, SIZEOF menuInput - 1
+    call ReadString             ; eax = number of chars typed
+
+    cmp eax, 1                  ; must be exactly one char
+    jne InvalidMenuInput
+
+    mov al, menuInput
+    cmp al, '0'                 ; below '0' -> not a digit
+    jb InvalidMenuInput
+    cmp al, '9'                 ; above '9' -> not a digit
+    ja InvalidMenuInput
+
+    sub al, '0'                 ; '7' -> 7
+    movzx eax, al
+    clc                         ; valid
+    ret
+
+InvalidMenuInput:
+    xor eax, eax
+    stc                         ; invalid
+    ret
+ReadMenuOption ENDP
 
 END main

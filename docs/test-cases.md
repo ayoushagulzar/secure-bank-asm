@@ -30,8 +30,8 @@ Both members run **every** row on their own machine and write **Pass** or **Fail
 | 19 | Change PIN | Batool | 1003: change 1111 to 2222, log out, log in with 2222 | "PIN changed successfully.", login works | Pass | |
 | 20 | Admin | Batool | Wrong password | "Access denied." | Pass | |
 | 21 | Admin | Batool | List accounts, then unlock 1004 and log in (2580) | Table with colored ACTIVE / LOCKED, "Account unlocked.", login works | Pass | |
-| 22 | Storage | Batool | Deposit 1000, exit (0), run again, check balance | Balance kept | Fail (program did not store the updated amount) | |
-| 23 | Interest | Batool | **(fresh data)** 1001: 3-year projection | 1 year: Rs. 2,500. Years: Rs. 52,500 / Rs. 55,125 / Rs. 57,881 | | |
-| 24 | Interest | Batool | Projection for 0 or 11 years | "Please enter 1 to 10 years." | | |
-| 25 | Storage | Batool | **(fresh data)** run | Default accounts load (1001 = Rs. 50,000) | | |
-| 26 | Menu | Ayousha | Option 9, then letters | "Invalid option. Please choose from the menu." | | |
+| 22 | Storage | Batool | Deposit 1000, exit (0), run again, check balance | Balance kept | Pass | |
+| 23 | Interest | Batool | **(fresh data)** 1001: 3-year projection | 1 year: Rs. 2,500. Years: Rs. 52,500 / Rs. 55,125 / Rs. 57,881 | Pass | |
+| 24 | Interest | Batool | Projection for 0 or 11 years | "Please enter 1 to 10 years." | Pass | |
+| 25 | Storage | Batool | **(fresh data)** run | Default accounts load (1001 = Rs. 50,000) | Pass | |
+| 26 | Menu | Ayousha | Option 9, then letters | "Invalid option. Please choose from the menu." | Pass | |
