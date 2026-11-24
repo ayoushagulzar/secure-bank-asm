@@ -11,12 +11,9 @@
   <img src="https://img.shields.io/badge/PURPOSE-LAB%20PROJECT-D63384?style=for-the-badge&labelColor=2A3142">
 </p>
 
-<!-- Demo: uncomment once docs/screenshots/demo.gif is added
-     (or use docs/screenshots/main-menu.png for a still image)
 <p align="center">
-  <img src="docs/screenshots/demo.gif" alt="Secure Bank demo" width="700">
+  <img src="docs/screenshots/splash-screen.png" alt="Secure Bank splash screen" width="700">
 </p>
--->
 
 ---
 
@@ -42,6 +39,30 @@ Secure Bank is a console ATM written in **32-bit x86 Assembly (MASM)** with the 
 | **Admin panel** | Hashed admin password, table of all accounts with colored status, unlock with `AND`. |
 | **Persistent storage** | All bank data lives in one memory block, saved to `data/bank.dat` with a single `WriteToFile` call and reloaded at startup. |
 | **Console UI** | Double-line box frames, a consistent color scheme, text centered with `SCASB`, splash screen with loading bar. |
+
+---
+
+## Screenshots
+
+| | |
+|:---:|:---:|
+| **Main menu** | **User login (masked PIN)** |
+| <img src="docs/screenshots/main-menu.png" alt="Main menu" width="400"> | <img src="docs/screenshots/user-login.png" alt="User login (masked PIN)" width="400"> |
+| **Account services** | **Balance inquiry** |
+| <img src="docs/screenshots/account-menu.png" alt="Account services" width="400"> | <img src="docs/screenshots/current-balance.png" alt="Balance inquiry" width="400"> |
+| **Deposit** | **Withdraw** |
+| <img src="docs/screenshots/deposit.png" alt="Deposit" width="400"> | <img src="docs/screenshots/withdraw.png" alt="Withdraw" width="400"> |
+| **Fund transfer** | **Interest calculator** |
+| <img src="docs/screenshots/fund-transfer.png" alt="Fund transfer" width="400"> | <img src="docs/screenshots/interest.png" alt="Interest calculator" width="400"> |
+| **Transaction history** | **Change PIN** |
+| <img src="docs/screenshots/history.png" alt="Transaction history" width="400"> | <img src="docs/screenshots/change-pin.png" alt="Change PIN" width="400"> |
+| **Admin panel** | **All accounts (admin)** |
+| <img src="docs/screenshots/admin-menu.png" alt="Admin panel" width="400"> | <img src="docs/screenshots/admin-accounts.png" alt="All accounts (admin)" width="400"> |
+
+<p align="center">
+  <b>Unlocking an account (admin)</b><br>
+  <img src="docs/screenshots/account-unlock.png" alt="Unlock account" width="400">
+</p>
 
 ---
 
@@ -72,6 +93,9 @@ secure-bank-asm/
 │       └── console_ui.asm
 ├── data/
 ├── docs/
+│   ├── screenshots/
+│   ├── COAL_Project_Proposal.pdf
+│   ├── COAL_Project_Final_Report.pdf
 │   └── test-cases.md
 ├── CONTRIBUTING.md
 ├── LICENSE
@@ -113,15 +137,14 @@ This is a learning project, not real banking software:
 - The PIN hash is a simple custom function without a salt, so equal PINs give equal hashes. Real systems use salted, slow hashes such as bcrypt or Argon2.
 - Amounts entered are limited to 32 bits (up to 4,294,967,295); balances are 64-bit.
 - The interest calculator uses only the low 32 bits of the balance, so it is correct only for balances up to 4,294,967,295.
-- `data/bank.dat` is not encrypted and is read relative to the working directory, so run the program from Visual Studio.
+- `data/bank.dat` is not encrypted. Its path is built from the location of `SecureBank.exe` (two folders up), so keep the default build output folder.
 
-<!-- Uncomment once the report is added
 ---
 
 ## Project Report
 
-The full report is in [docs/report/Secure_Bank_Report.pdf](docs/report/Secure_Bank_Report.pdf).
--->
+- [Project Proposal](docs/COAL_Project_Proposal.pdf)
+- [Final Project Report](docs/COAL_Project_Final_Report.pdf)
 
 ---
 
