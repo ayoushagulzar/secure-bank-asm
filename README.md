@@ -11,10 +11,6 @@
   <img src="https://img.shields.io/badge/PURPOSE-LAB%20PROJECT-D63384?style=for-the-badge&labelColor=2A3142">
 </p>
 
-<p align="center">
-  <img src="docs/screenshots/splash-screen.png" alt="Secure Bank splash screen" width="700">
-</p>
-
 ---
 
 ## About
@@ -39,30 +35,6 @@ Secure Bank is a console ATM written in **32-bit x86 Assembly (MASM)** with the 
 | **Admin panel** | Hashed admin password, table of all accounts with colored status, unlock with `AND`. |
 | **Persistent storage** | All bank data lives in one memory block, saved to `data/bank.dat` with a single `WriteToFile` call and reloaded at startup. |
 | **Console UI** | Double-line box frames, a consistent color scheme, text centered with `SCASB`, splash screen with loading bar. |
-
----
-
-## Screenshots
-
-| | |
-|:---:|:---:|
-| **Main menu** | **User login (masked PIN)** |
-| <img src="docs/screenshots/main-menu.png" alt="Main menu" width="400"> | <img src="docs/screenshots/user-login.png" alt="User login (masked PIN)" width="400"> |
-| **Account services** | **Balance inquiry** |
-| <img src="docs/screenshots/account-menu.png" alt="Account services" width="400"> | <img src="docs/screenshots/current-balance.png" alt="Balance inquiry" width="400"> |
-| **Deposit** | **Withdraw** |
-| <img src="docs/screenshots/deposit.png" alt="Deposit" width="400"> | <img src="docs/screenshots/withdraw.png" alt="Withdraw" width="400"> |
-| **Fund transfer** | **Interest calculator** |
-| <img src="docs/screenshots/fund-transfer.png" alt="Fund transfer" width="400"> | <img src="docs/screenshots/interest.png" alt="Interest calculator" width="400"> |
-| **Transaction history** | **Change PIN** |
-| <img src="docs/screenshots/history.png" alt="Transaction history" width="400"> | <img src="docs/screenshots/change-pin.png" alt="Change PIN" width="400"> |
-| **Admin panel** | **All accounts (admin)** |
-| <img src="docs/screenshots/admin-menu.png" alt="Admin panel" width="400"> | <img src="docs/screenshots/admin-accounts.png" alt="All accounts (admin)" width="400"> |
-
-<p align="center">
-  <b>Unlocking an account (admin)</b><br>
-  <img src="docs/screenshots/account-unlock.png" alt="Unlock account" width="400">
-</p>
 
 ---
 
