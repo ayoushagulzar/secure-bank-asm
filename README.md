@@ -115,7 +115,7 @@ This is a learning project, not real banking software:
 
 ## Project Report
 
-- [Project Proposal](docs/COAL_Project_Proposal.pdf)
+- [Project Proposal](docs/Project_Proposal.pdf)
 - [Final Project Report](docs/COAL_Project_Final_Report.pdf)
 
 ---
